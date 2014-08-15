@@ -1,5 +1,7 @@
 Revision history for Perl module Math::NV
 
+0.04
+
 0.03
     - Add t/10exponent_0_to_12.t.
     - Define PERL_NO_GET_CONTEXT.
