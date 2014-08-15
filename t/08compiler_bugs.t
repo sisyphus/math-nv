@@ -53,7 +53,8 @@ if(Math::NV::_bug_1175557635e10() != nv('1175557635e10')) {
   }
   warn " Correct hex value is: +0x1.464864d02f776p+63\n";
   warn " POSIX::strtod yields: ", float_hex(scalar POSIX::strtod('1175557635e10')), "\n";
-  warn " C compiler/libc says: ", float_hex(scalar nv('1175557635e10')), "\n";
+  warn " C's strtod says     : ", float_hex(scalar nv('1175557635e10')), "\n";
+  warn " C assigns           : ", float_hex(Math::NV::_bug_1175557635e10()), "\n";
   $ok = 0 unless lc(float_hex(scalar nv('1175557635e10'))) eq '+0x1.464864d02f776p+63';
   warn "\n";
   warn "\n";
