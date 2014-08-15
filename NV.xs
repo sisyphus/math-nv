@@ -7,7 +7,6 @@
 
 #define PERL_NO_GET_CONTEXT 1
 
-
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
@@ -50,14 +49,15 @@ SV * nv_type(pTHX) {
    return newSVpv("long double", 0);
 #else
    return newSVpv("double", 0);
+
 #endif
 }
 
-SV * mant_dig(pTHX) {
+unsigned long mant_dig(void) {
 #ifdef NV_IS_LONG_DOUBLE
-   return newSVuv(LDBL_MANT_DIG);
+   return LDBL_MANT_DIG;
 #else
-   return newSVuv(DBL_MANT_DIG);
+   return DBL_MANT_DIG;
 #endif
 }
 
@@ -261,7 +261,7 @@ SV * _bug_1175557635e10(pTHX) {
   return newSVnv(1175557635e10);
 #endif
 }
-MODULE = Math::NV	PACKAGE = Math::NV
+MODULE = Math::NV  PACKAGE = Math::NV
 
 PROTOTYPES: DISABLE
 
@@ -269,18 +269,18 @@ PROTOTYPES: DISABLE
 void
 nv (str)
 	char *	str
-	PREINIT:
-	I32* temp;
-	PPCODE:
-	temp = PL_markstack_ptr++;
-	nv(aTHX_ str);
-	if (PL_markstack_ptr != temp) {
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        nv(aTHX_ str);
+        if (PL_markstack_ptr != temp) {
           /* truly void, because dXSARGS not invoked */
-	  PL_markstack_ptr = temp;
-	  XSRETURN_EMPTY; /* return empty stack */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
         }
         /* must have used dXSARGS; list context implied */
-	return; /* assume stack size is correct */
+        return; /* assume stack size is correct */
 
 SV *
 nv_type ()
@@ -289,46 +289,43 @@ CODE:
 OUTPUT:  RETVAL
 
 
-SV *
+unsigned long
 mant_dig ()
-CODE:
-  RETVAL = mant_dig (aTHX);
-OUTPUT:  RETVAL
 
 
 void
 _ld2binary (ld, flag)
 	SV *	ld
 	long	flag
-	PREINIT:
-	I32* temp;
-	PPCODE:
-	temp = PL_markstack_ptr++;
-	_ld2binary(aTHX_ ld, flag);
-	if (PL_markstack_ptr != temp) {
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        _ld2binary(aTHX_ ld, flag);
+        if (PL_markstack_ptr != temp) {
           /* truly void, because dXSARGS not invoked */
-	  PL_markstack_ptr = temp;
-	  XSRETURN_EMPTY; /* return empty stack */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
         }
         /* must have used dXSARGS; list context implied */
-	return; /* assume stack size is correct */
+        return; /* assume stack size is correct */
 
 void
 _ld_str2binary (ld, flag)
 	char *	ld
 	long	flag
-	PREINIT:
-	I32* temp;
-	PPCODE:
-	temp = PL_markstack_ptr++;
-	_ld_str2binary(aTHX_ ld, flag);
-	if (PL_markstack_ptr != temp) {
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        _ld_str2binary(aTHX_ ld, flag);
+        if (PL_markstack_ptr != temp) {
           /* truly void, because dXSARGS not invoked */
-	  PL_markstack_ptr = temp;
-	  XSRETURN_EMPTY; /* return empty stack */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
         }
         /* must have used dXSARGS; list context implied */
-	return; /* assume stack size is correct */
+        return; /* assume stack size is correct */
 
 SV *
 _bug_95e20 ()
