@@ -74,7 +74,7 @@ int Isnan_ld (long double d) {
 void _ld2binary (pTHX_ SV * ld, long flag) {
 
   dXSARGS;
-  long double d = SvNV(ld);
+  long double d = (long double)SvNV(ld);
   long double e;
   int exp = 1;
   unsigned long int prec = 0;
@@ -161,13 +161,16 @@ void _ld_str2binary (pTHX_ char * ld, long flag) {
 
   dXSARGS;
   long double d;
-  char *ptr;
   long double e;
   int exp = 1;
   unsigned long int prec = 0;
   int returns = 0;
 
-  d = strtold(ld, &ptr);
+#ifdef NV_IS_LONG_DOUBLE
+  d = strtold(ld, NULL);
+#else
+  d = (long double)strtod(ld, NULL);
+#endif
 
   sp = mark;
 
@@ -261,6 +264,8 @@ SV * _bug_1175557635e10(pTHX) {
   return newSVnv(1175557635e10);
 #endif
 }
+
+
 MODULE = Math::NV  PACKAGE = Math::NV
 
 PROTOTYPES: DISABLE
