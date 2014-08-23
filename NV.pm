@@ -14,10 +14,12 @@ DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
 @Math::NV::EXPORT = ();
 @Math::NV::EXPORT_OK = qw(
     nv nv_type mant_dig ld2binary ld_str2binary is_eq mant2binary mant_str2binary
+    bin2val
     );
 
 %Math::NV::EXPORT_TAGS = (all => [qw(
     nv nv_type mant_dig ld2binary ld_str2binary is_eq mant2binary mant_str2binary
+    bin2val
     )]);
 
 sub dl_load_flags {0} # Prevent DynaLoader from complaining and croaking
@@ -36,6 +38,24 @@ sub ld_str2binary {
   my $exp = pop(@ret);
   my $mantissa = join '', @ret;
   return ($mantissa, $exp, $prec);
+}
+
+sub bin2val {
+  my $val;
+  my($mantissa, $exp, $prec) = (shift, shift, shift);
+  my $sign = $mantissa =~ /^\-/ ? '-' : '';
+  # Remove everything upto and including the radix point
+  # as it now contains no useful information.
+  $mantissa =~ s/.+\.//;
+  # For our purposes the values $prec and $exp need
+  # to be reduced by 1.
+  $prec--;
+  $exp--;
+  for(0..$prec) {
+    if(substr($mantissa, $_, 1)) {$val += 2**$exp}
+    $exp--;
+  }
+  $sign eq '-' ? return -$val : return $val;
 }
 
 sub is_eq {
@@ -130,30 +150,35 @@ Math::NV - assign correct value to perl's NV
    ($mantissa, $exponent, $precision) = ld2binary($nv, $flag);
 
     Uses code taken from tests/tset_ld.c in the mpfr library source
-    and returns a base 2 representation of the long double value contained
-    in the NV $nv.
+    and returns a base 2 representation of the value contained in the
+    NV $nv - irrespective of whether the NV type ($Config{nvtype}) is
+    double or long double.
     If $flag is true, it also prints out additional information during
     calculation.
     $mantissa is the mantissa (significand).
     $exponent is the exponent.
     $precision is the precision (in bits) of the mantissa - trailing
     zero bits are not counted.
-    For doubles, use Data::Float's float_hex($nv) - which also works
-    for long double NV's on most architectures (but not powerpc).
+
 
    ($mantissa, $exponent, $precision) = ld_str2binary($str, $flag);
 
     Uses code taken from tests/tset_ld.c in the mpfr library source
-    and returns a base 2 representation of the long double value
-    represented by the string $str.
+    and returns a base 2 representation of the value of the NV
+    represented by the string $str - irrespective of whether the NV
+    type ($Config{nvtype}) is double or long double.
     If $flag is true, it also prints out additional information during
     calculation.
     $mantissa is the mantissa (significand).
     $exponent is the exponent.
     $precision is the precision (in bits) of the mantissa - trailing
     zero bits are not counted.
-    For doubles, use Data::Float's float_hex($str) - which also works
-    for long double NV's on most architectures (but not powerpc).
+
+   $nv = bin2val($mnantissa, $exponent, $precision);
+
+    Takes the return values of ld_str2binary() or ld2binary() and
+    returns the original NV. (Probably doesn't work if the original
+    NV is an inf or a nan.)
 
    $mantissa = mant2binary($nv);
 
