@@ -174,7 +174,7 @@ Math::NV - assign correct value to perl's NV
     $precision is the precision (in bits) of the mantissa - trailing
     zero bits are not counted.
 
-   $nv = bin2val($mnantissa, $exponent, $precision);
+   $nv = bin2val($mantissa, $exponent, $precision);
 
     Takes the return values of ld_str2binary() or ld2binary() and
     returns the original NV. (Probably doesn't work if the original
@@ -194,7 +194,7 @@ Math::NV - assign correct value to perl's NV
 
    This program is free software; you may redistribute it and/or modify
    it under the same terms as Perl itself.
-   Copyright 2013 Sisyphus
+   Copyright 2013-14 Sisyphus
 
 
 =head1 AUTHOR
