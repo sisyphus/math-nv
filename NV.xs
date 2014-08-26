@@ -249,6 +249,32 @@ void _ld_str2binary (pTHX_ char * ld, long flag) {
   XSRETURN(returns);
 }
 
+SV * _bin2val(pTHX_ SV * num, ...) {
+  dXSARGS;
+
+  int i;
+  int prec = (int)SvIV(ST(0));
+
+#ifdef NV_IS_LONG_DOUBLE
+  long double d = 0.0L;
+  long double exp  = (long double)SvNV(ST(1));
+  for(i = 2; i < prec + 2; i++) {
+    d += powl(2.0L, exp);
+    exp--;
+  }
+
+#else
+  double d = 0.0;
+  double exp  = (double)SvNV(ST(1));
+  for(i = 2; i < prec + 2; i++) {
+    if(SvIV(ST(i))) d += pow(2.0, exp);
+    exp--;
+  }
+#endif
+
+  return newSVnv(d);
+}
+
 SV * _bug_95e20(pTHX) {
 #ifdef NV_IS_LONG_DOUBLE
   return newSVnv(95e20L);
@@ -331,6 +357,18 @@ _ld_str2binary (ld, flag)
         }
         /* must have used dXSARGS; list context implied */
         return; /* assume stack size is correct */
+
+SV *
+_bin2val (num, ...)
+	SV *	num
+        PREINIT:
+        I32* temp;
+        CODE:
+        temp = PL_markstack_ptr++;
+        RETVAL = _bin2val(aTHX_ num);
+        PL_markstack_ptr = temp;
+        OUTPUT:
+        RETVAL
 
 SV *
 _bug_95e20 ()
