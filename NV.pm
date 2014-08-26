@@ -41,7 +41,6 @@ sub ld_str2binary {
 }
 
 sub bin2val {
-  my $val;
   my($mantissa, $exp, $prec) = (shift, shift, shift);
   my $sign = $mantissa =~ /^\-/ ? '-' : '';
   # Remove everything upto and including the radix point
@@ -49,12 +48,17 @@ sub bin2val {
   $mantissa =~ s/.+\.//;
   # For our purposes the values $prec and $exp need
   # to be reduced by 1.
-  $prec--;
   $exp--;
-  for(0..$prec) {
-    if(substr($mantissa, $_, 1)) {$val += 2**$exp}
-    $exp--;
-  }
+
+  # Perl bugs make the following (commented out) code unreliable,
+  # so we now hand the calculations over to C.
+  # (And there's no need to decrement $prec.)
+  #$prec--;
+  #for(0..$prec) {
+  #  if(substr($mantissa, $_, 1)) {$val += 2**$exp}
+  #  $exp--;
+  #}
+  my $val = _bin2val($prec, $exp, split(//, $mantissa));
   $sign eq '-' ? return -$val : return $val;
 }
 
