@@ -195,6 +195,17 @@ Math::NV - assign correct value to perl's NV
     Returns a base 2 representation of the mantissa of the value
     represented by $str. (Also uses perl's unpack/pack functions.)
 
+   Cprintf($fmt, $nv);
+    Uses C's printf() function to format the NV $nv, according to the
+    formatting specified by the string $fmt.
+
+   $string = Csprintf($fmt, $nv, $buffer_size);
+    Uses C's sprintf() function to format the NV $nv, according to the
+    formatting specified by the string $fmt - and returns the result to
+    $string. It's the responsibility of the caller to ensure that
+    $buffer_size specifies a large enough (at least) number of characters
+    to accommodate C's sprintf formatting of $nv.
+
 =head1 LICENSE
 
    This program is free software; you may redistribute it and/or modify
