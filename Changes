@@ -1,5 +1,7 @@
 Revision history for Perl module Math::NV
 
+0.05
+
 0.04
     - Minor rewrite of _ld2binary and _ld_str2binary to work with doubles
       as well as long doubles
