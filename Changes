@@ -4,6 +4,8 @@ Revision history for Perl module Math::NV
     - Minor rewrite of _ld2binary and _ld_str2binary to work with doubles
       as well as long doubles
     - Add bin2val function
+    - Add Cprintf and Csprintf functions
+
 0.03
     - Add t/10exponent_0_to_12.t.
     - Define PERL_NO_GET_CONTEXT.
