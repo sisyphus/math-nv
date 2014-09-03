@@ -14,6 +14,7 @@ t/07ld2binary.t
 t/08compiler_bugs.t
 t/09list_context.t
 t/10exponent_0_to_12.t
+t/11sprintf.t
 t/69659e-292.t
 t/pod.t
 
