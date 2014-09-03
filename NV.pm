@@ -14,12 +14,12 @@ DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
 @Math::NV::EXPORT = ();
 @Math::NV::EXPORT_OK = qw(
     nv nv_type mant_dig ld2binary ld_str2binary is_eq mant2binary mant_str2binary
-    bin2val
+    bin2val Cprintf Csprintf
     );
 
 %Math::NV::EXPORT_TAGS = (all => [qw(
     nv nv_type mant_dig ld2binary ld_str2binary is_eq mant2binary mant_str2binary
-    bin2val
+    bin2val Cprintf Csprintf
     )]);
 
 sub dl_load_flags {0} # Prevent DynaLoader from complaining and croaking
@@ -58,7 +58,8 @@ sub bin2val {
   #  if(substr($mantissa, $_, 1)) {$val += 2**$exp}
   #  $exp--;
   #}
-  my $val = _bin2val($prec, $exp, split(//, $mantissa));
+  my @mantissa = split //, $mantissa;
+  my $val = _bin2val($prec, $exp, \@mantissa);
   $sign eq '-' ? return -$val : return $val;
 }
 
