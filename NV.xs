@@ -21,6 +21,10 @@
 #endif
 #endif
 
+#ifndef Newx
+#  define Newx(v,n,t) New(0,v,n,t)
+#endif
+
 void nv(pTHX_ char * str) {
    dXSARGS;
    char * unparsed;
@@ -249,26 +253,24 @@ void _ld_str2binary (pTHX_ char * ld, long flag) {
   XSRETURN(returns);
 }
 
-SV * _bin2val(pTHX_ SV * num, ...) {
-  dXSARGS;
-
-  int i;
-  int prec = (int)SvIV(ST(0));
+SV * _bin2val(pTHX_  SV * precision, SV * exponent, SV * bin) {
+  IV i, prec;
+  prec = SvIV(precision);
 
 #ifdef NV_IS_LONG_DOUBLE
   long double d = 0.0L;
-  long double exp  = (long double)SvNV(ST(1));
-  for(i = 2; i < prec + 2; i++) {
-    d += powl(2.0L, exp);
-    exp--;
+  long double exp  = (long double)SvNV(exponent);
+  for(i = 0; i < prec; i++) {
+    if(SvIV(*(av_fetch((AV*)SvRV(bin), i, 0)))) d += powl(2.0L, exp);
+    exp -= 1.0L;
   }
 
 #else
   double d = 0.0;
-  double exp  = (double)SvNV(ST(1));
-  for(i = 2; i < prec + 2; i++) {
-    if(SvIV(ST(i))) d += pow(2.0, exp);
-    exp--;
+  double exp  = (double)SvNV(exponent);
+  for(i = 0; i < prec; i++) {
+    if(SvIV(*(av_fetch((AV*)SvRV(bin), i, 0)))) d += pow(2.0, exp);
+    exp -= 1.0;
   }
 #endif
 
@@ -291,7 +293,34 @@ SV * _bug_1175557635e10(pTHX) {
 #endif
 }
 
+void Cprintf(pTHX_ char * fmt, SV * nv) {
 
+#ifdef NV_IS_LONG_DOUBLE
+  printf(fmt, (long double)SvNV(nv));
+#else
+  printf(fmt, (double)SvNV(nv));
+#endif
+
+}
+
+void Csprintf(pTHX_ char * fmt, SV * nv, int size) {
+   dXSARGS;
+   char * out;
+
+   Newx(out, size, char);
+   if(out == NULL) croak("Failed to allcoate memory in Csprintf function");
+
+#ifdef NV_IS_LONG_DOUBLE
+   sprintf(out, fmt, (long double)SvNV(nv));
+#else
+   sprintf(out, fmt, (double)SvNV(nv));
+#endif
+
+   ST(0) = sv_2mortal(newSVpv(out, 0));
+   Safefree(out);
+   XSRETURN(1);
+
+}
 MODULE = Math::NV  PACKAGE = Math::NV
 
 PROTOTYPES: DISABLE
@@ -359,16 +388,13 @@ _ld_str2binary (ld, flag)
         return; /* assume stack size is correct */
 
 SV *
-_bin2val (num, ...)
-	SV *	num
-        PREINIT:
-        I32* temp;
-        CODE:
-        temp = PL_markstack_ptr++;
-        RETVAL = _bin2val(aTHX_ num);
-        PL_markstack_ptr = temp;
-        OUTPUT:
-        RETVAL
+_bin2val (precision, exponent, bin)
+	SV *	precision
+	SV *	exponent
+	SV *	bin
+CODE:
+  RETVAL = _bin2val (aTHX_ precision, exponent, bin);
+OUTPUT:  RETVAL
 
 SV *
 _bug_95e20 ()
@@ -383,4 +409,39 @@ CODE:
   RETVAL = _bug_1175557635e10 (aTHX);
 OUTPUT:  RETVAL
 
+
+void
+Cprintf (fmt, nv)
+	char *	fmt
+	SV *	nv
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        Cprintf(aTHX_ fmt, nv);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+Csprintf (fmt, nv, size)
+	char *	fmt
+	SV *	nv
+	int	size
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        Csprintf(aTHX_ fmt, nv, size);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
 
