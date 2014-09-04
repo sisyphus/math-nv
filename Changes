@@ -1,6 +1,8 @@
 Revision history for Perl module Math::NV
 
 0.05
+    - Add extra diagnostics to t/07ld2binary.t in an attempt to determine
+      the cause of the failures that occur on some machines.
 
 0.04
     - Minor rewrite of _ld2binary and _ld_str2binary to work with doubles
