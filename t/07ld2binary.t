@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use POSIX;
 use Math::NV qw(:all);
+use Data::Float qw(float_hex);
 
 my $t = 6;
 print "1..6\n";
@@ -31,39 +32,55 @@ else {
 
 my @ok = (1) x $t;
 
-for(@s) {
-  my @bin1 = ld2binary($_, 0);
-  my @bin2 = ld2binary("$_", 0);
-  my @bin3 = ld_str2binary($_, 0);
-  my @bin4 = ld_str2binary("$_", 0);
+for(my $i = 0; $i < @s; $i++) {
+  my @bin1 = ld2binary($s[$i], 0);
+  my @bin2 = ld2binary("$s[$i]", 0);
+  my @bin3 = ld_str2binary($s[$i], 0);
+  my @bin4 = ld_str2binary("$s[$i]", 0);
 
-  if(bin2val(@bin1) != $_) {
-    warn "1: discrepancy wrt $_\n";
+  if(bin2val(@bin1) != $s[$i]) {
+    warn "1 ($i): discrepancy wrt $s[$i]\n";
+    for(@bin1) {warn " $_\n"}
+    warn " ", float_hex(bin2val(@bin1)), "\n";
+    warn " ", float_hex($s[$i]), "\n\n";
     $ok[0] = 0;
   }
 
-    if(bin2val(@bin2) != "$_") {
-    warn "2: discrepancy wrt $_\n";
+    if(bin2val(@bin2) != "$s[$i]") {
+    warn "2 ($i): discrepancy wrt $s[$i]\n";
+    for(@bin2) {warn " $_\n"}
+    warn " ", float_hex(bin2val(@bin2)), "\n";
+    warn " ", float_hex("$s[$i]"), "\n\n";
     $ok[1] = 0;
  }
 
-  if(bin2val(@bin3) != nv($_)) {
-    warn "3: discrepancy wrt $_\n";
+  if(bin2val(@bin3) != nv($s[$i])) {
+    warn "3 ($i): discrepancy wrt $s[$i]\n";
+    for(@bin3) {warn " $_\n"}
+    warn " ", float_hex(bin2val(@bin3)), "\n";
+    warn " ", float_hex(nv($s[$i])), "\n\n";
     $ok[2] = 0;
   }
 
-    if(bin2val(@bin4) != nv("$_")) {
-    warn "4: discrepancy wrt $_\n";
+    if(bin2val(@bin4) != nv("$s[$i]")) {
+    warn "4 ($i): discrepancy wrt $s[$i]\n";
+    for(@bin4) {warn " $_\n"}
+    warn " ", float_hex(bin2val(@bin4)), "\n";
+    warn " ", float_hex(nv("$s[$i]")), "\n\n";
     $ok[3] = 0;
   }
 
-  if(alias_sub($_) != nv($_)) {
-    warn "5: discrepancy wrt $_\n";
+  if(alias_sub($s[$i]) != nv($s[$i])) {
+    warn "5 ($i): discrepancy wrt $s[$i]\n";
+    warn " ", float_hex(alias_sub($s[$i])), " (alias_sub)\n";
+    warn " ", float_hex(nv($s[$i])), " (nv)\n\n";
     $ok[4] = 0;
   }
 
-    if(alias_sub("$_") != nv("$_")) {
-    warn "6: discrepancy wrt $_\n";
+    if(alias_sub("$s[$i]") != nv("$s[$i]")) {
+    warn "6 ($i): discrepancy wrt $s[$i]\n";
+    warn " ", float_hex(alias_sub("$s[$i]")), " (alias_sub)\n";
+    warn " ", float_hex(nv("$s[$i]")), " (nv)\n\n";
     $ok[5] = 0;
   }
 }
