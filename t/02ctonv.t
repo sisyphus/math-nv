@@ -15,6 +15,11 @@ if(mant_dig() == 106) {
 
 require Data::Float; Data::Float->import('float_hex');
 
+my $nvtype = nv_type();
+
+die "NV is $Config{nvtype}, but Math::NV thinks it is $nvtype"
+  if $nvtype ne $Config{nvtype};
+
 my $needed = 0;
 my $ok = 1;
 
@@ -22,7 +27,8 @@ warn "Setting \$nv to 1e-298\n";
 
 my $nv = '1e-298';
 my $correct = nv_type() eq 'double' ? '+0x1.0be08d0527e1dp-990'
-                                    : '+0x1.0be08d0527e1d69cp-990';
+                                    : $nvtype eq 'long double' ? '+0x1.0be08d0527e1d69cp-990'
+                                                               : '+0x1.0be08d0527e1d69c4b77eac0118bp-990';
 
 if($nv == nv('1e-298')) {
   warn"1. Perl and C agree that 1e-298 is $nv\n";
