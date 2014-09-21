@@ -228,12 +228,12 @@ else {
 ##############################################
 
 sub float_bin {
-  my @in = ld2binary($_[0], 0);
+  my @in = ld2binary($_[0]);
   return $in[0] . 'e' . $in[1];
 }
 
 sub str_bin {
-  my @in = ld_str2binary($_[0], 0);
+  my @in = ld_str2binary($_[0]);
   return $in[0] . 'e' . $in[1];
 }
 
