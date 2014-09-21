@@ -33,10 +33,10 @@ else {
 my @ok = (1) x $t;
 
 for(my $i = 0; $i < @s; $i++) {
-  my @bin1 = ld2binary($s[$i], 0);
-  my @bin2 = ld2binary("$s[$i]", 0);
-  my @bin3 = ld_str2binary($s[$i], 0);
-  my @bin4 = ld_str2binary("$s[$i]", 0);
+  my @bin1 = ld2binary($s[$i]);
+  my @bin2 = ld2binary("$s[$i]");
+  my @bin3 = ld_str2binary($s[$i]);
+  my @bin4 = ld_str2binary("$s[$i]");
 
   if(bin2val(@bin1) != $s[$i]) {
     warn "1 ($i): discrepancy wrt $s[$i]\n";
@@ -54,7 +54,7 @@ for(my $i = 0; $i < @s; $i++) {
     $ok[1] = 0;
  }
 
-  if(bin2val(@bin3) != nv($s[$i])) {
+  if(bin2val(@bin3) != scalar nv($s[$i])) {
     warn "3 ($i): discrepancy wrt $s[$i]\n";
     for(@bin3) {warn " $_\n"}
     warn " ", float_hex(bin2val(@bin3)), "\n";
@@ -62,7 +62,7 @@ for(my $i = 0; $i < @s; $i++) {
     $ok[2] = 0;
   }
 
-    if(bin2val(@bin4) != nv("$s[$i]")) {
+    if(bin2val(@bin4) != scalar nv("$s[$i]")) {
     warn "4 ($i): discrepancy wrt $s[$i]\n";
     for(@bin4) {warn " $_\n"}
     warn " ", float_hex(bin2val(@bin4)), "\n";
@@ -70,14 +70,14 @@ for(my $i = 0; $i < @s; $i++) {
     $ok[3] = 0;
   }
 
-  if(alias_sub($s[$i]) != nv($s[$i])) {
+  if(alias_sub($s[$i]) != scalar nv($s[$i])) {
     warn "5 ($i): discrepancy wrt $s[$i]\n";
     warn " ", float_hex(alias_sub($s[$i])), " (alias_sub)\n";
     warn " ", float_hex(nv($s[$i])), " (nv)\n\n";
     $ok[4] = 0;
   }
 
-    if(alias_sub("$s[$i]") != nv("$s[$i]")) {
+    if(alias_sub("$s[$i]") != scalar nv("$s[$i]")) {
     warn "6 ($i): discrepancy wrt $s[$i]\n";
     warn " ", float_hex(alias_sub("$s[$i]")), " (alias_sub)\n";
     warn " ", float_hex(nv("$s[$i]")), " (nv)\n\n";
@@ -90,4 +90,4 @@ for(1..$t) {
   else {print "not ok $_\n"}
 }
 
-sub alias_fallback {return nv($_[0])}
+sub alias_fallback {return scalar nv($_[0])}
