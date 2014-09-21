@@ -11,7 +11,14 @@
 #include "perl.h"
 #include "XSUB.h"
 
-
+#ifdef NV_IS_FLOAT128
+#include <quadmath.h>
+#ifdef __MINGW64__
+typedef __float128 float128 __attribute__ ((aligned(8)));
+#else
+typedef __float128 float128;
+#endif
+#endif
 #include <stdlib.h>
 #include <float.h>
 
@@ -25,15 +32,27 @@
 #  define Newx(v,n,t) New(0,v,n,t)
 #endif
 
+#ifdef NV_IS_FLOAT128
+typedef float128 ARGTYPE;
+#endif
+#ifdef NV_IS_LONG_DOUBLE
+typedef long double ARGTYPE;
+#endif
+#ifdef NV_IS_DOUBLE
+typedef double ARGTYPE;
+#endif
+
 void nv(pTHX_ char * str) {
    dXSARGS;
    char * unparsed;
+#ifdef NV_IS_FLOAT128
+   float128 num = strtoflt128(str, &unparsed);
+#endif
 #ifdef NV_IS_LONG_DOUBLE
-   long double num;
-   num = strtold(str, &unparsed);
-#else
-   double num;
-   num = strtod (str, &unparsed);
+   long double num = strtold(str, &unparsed);
+#endif
+#ifdef NV_IS_DOUBLE
+   double num = strtod (str, &unparsed);
 #endif
 
    ST(0) = sv_2mortal(newSVnv(num));
@@ -49,23 +68,30 @@ void nv(pTHX_ char * str) {
 }
 
 SV * nv_type(pTHX) {
+#ifdef NV_IS_FLOAT128
+   return newSVpv("__float128", 0);
+#endif
 #ifdef NV_IS_LONG_DOUBLE
    return newSVpv("long double", 0);
-#else
+#endif
+#ifdef NV_IS_DOUBLE
    return newSVpv("double", 0);
-
 #endif
 }
 
 unsigned long mant_dig(void) {
+#ifdef NV_IS_FLOAT128
+   return FLT128_MANT_DIG;
+#endif
 #ifdef NV_IS_LONG_DOUBLE
    return LDBL_MANT_DIG;
-#else
+#endif
+#ifdef NV_IS_DOUBLE
    return DBL_MANT_DIG;
 #endif
 }
 
-int Isnan_ld (long double d) {
+int Isnan_ld (ARGTYPE d) {
   if(d == d) return 0;
   return 1;
 }
@@ -75,11 +101,11 @@ int Isnan_ld (long double d) {
    tests/tset_ld.c in the mpfr library source.
 ********************************************************/
 
-void _ld2binary (pTHX_ SV * ld, long flag) {
+void _ld2binary (pTHX_ SV * ld) {
 
   dXSARGS;
-  long double d = (long double)SvNV(ld);
-  long double e;
+  ARGTYPE d = (ARGTYPE)SvNV(ld);
+  ARGTYPE e;
   int exp = 1;
   unsigned long int prec = 0;
   int returns = 0;
@@ -93,7 +119,7 @@ void _ld2binary (pTHX_ SV * ld, long flag) {
       XSRETURN(3);
   }
 
-  if (d < (long double) 0.0 || (d == (long double) 0.0 && (1.0 / (double) d < 0.0))) {
+  if (d < (ARGTYPE) 0.0 || (d == (ARGTYPE) 0.0 && (1.0 / (double) d < 0.0))) {
       XPUSHs(sv_2mortal(newSVpv("-", 0)));
       returns++;
       d = -d;
@@ -110,7 +136,7 @@ void _ld2binary (pTHX_ SV * ld, long flag) {
       XSRETURN(returns);
   }
 
-  if (d == (long double) 0.0) {
+  if (d == (ARGTYPE) 0.0) {
       XPUSHs(sv_2mortal(newSVpv("0.0", 0)));
       XPUSHs(sv_2mortal(newSViv(exp)));
       XPUSHs(sv_2mortal(newSViv(prec)));
@@ -119,13 +145,11 @@ void _ld2binary (pTHX_ SV * ld, long flag) {
   }
 
   /* now d > 0 */
-  e = (long double) 1.0;
+  e = (ARGTYPE) 1.0;
   while (e > d) {
-      e = e * (long double) 0.5;
+      e = e * (ARGTYPE) 0.5;
       exp --;
   }
-
-  if(flag) printf ("1: e=%.36Le\n", e);
 
   /* now d >= e */
   while (d >= e + e) {
@@ -133,13 +157,10 @@ void _ld2binary (pTHX_ SV * ld, long flag) {
       exp ++;
   }
 
-  if (flag) printf ("2: e=%.36Le\n", e);
-
   /* now e <= d < 2e */
   XPUSHs(sv_2mortal(newSVpv("0.", 0)));
   returns ++;
-
-  if (flag) printf ("3: d=%.36Le e=%.36Le prec=%lu\n", d, e, prec);
+  
   while (d > (long double) 0.0) {
       prec++;
       if(d >= e) {
@@ -152,7 +173,6 @@ void _ld2binary (pTHX_ SV * ld, long flag) {
         returns ++;
       }
       e *= (long double) 0.5;
-      if (flag) printf ("4: d=%.36Le e=%.36Le prec=%lu\n", d, e, prec);
   }
 
   XPUSHs(sv_2mortal(newSViv(exp)));
@@ -161,19 +181,23 @@ void _ld2binary (pTHX_ SV * ld, long flag) {
   XSRETURN(returns);
 }
 
-void _ld_str2binary (pTHX_ char * ld, long flag) {
+void _ld_str2binary (pTHX_ char * ld) {
 
   dXSARGS;
-  long double d;
-  long double e;
+  ARGTYPE d;
+  ARGTYPE e;
   int exp = 1;
   unsigned long int prec = 0;
   int returns = 0;
 
+#ifdef NV_IS_FLOAT128
+  d = strtoflt128(ld, NULL);
+#endif
 #ifdef NV_IS_LONG_DOUBLE
   d = strtold(ld, NULL);
-#else
-  d = (long double)strtod(ld, NULL);
+#endif
+#ifdef NV_IS_DOUBLE
+  d = strtod(ld, NULL);
 #endif
 
   sp = mark;
@@ -185,7 +209,7 @@ void _ld_str2binary (pTHX_ char * ld, long flag) {
       XSRETURN(3);
   }
 
-  if (d < (long double) 0.0 || (d == (long double) 0.0 && (1.0 / (double) d < 0.0))) {
+  if (d < (ARGTYPE) 0.0 || (d == (ARGTYPE) 0.0 && (1.0 / (double) d < 0.0))) {
       XPUSHs(sv_2mortal(newSVpv("-", 0)));
       returns++;
       d = -d;
@@ -202,7 +226,7 @@ void _ld_str2binary (pTHX_ char * ld, long flag) {
       XSRETURN(returns);
   }
 
-  if (d == (long double) 0.0) {
+  if (d == (ARGTYPE) 0.0) {
       XPUSHs(sv_2mortal(newSVpv("0.0", 0)));
       XPUSHs(sv_2mortal(newSViv(exp)));
       XPUSHs(sv_2mortal(newSViv(prec)));
@@ -211,13 +235,11 @@ void _ld_str2binary (pTHX_ char * ld, long flag) {
   }
 
   /* now d > 0 */
-  e = (long double) 1.0;
+  e = (ARGTYPE) 1.0;
   while (e > d) {
-      e = e * (long double) 0.5;
+      e = e * (ARGTYPE) 0.5;
       exp --;
   }
-
-  if(flag) printf ("1: e=%.36Le\n", e);
 
   /* now d >= e */
   while (d >= e + e) {
@@ -225,26 +247,22 @@ void _ld_str2binary (pTHX_ char * ld, long flag) {
       exp ++;
   }
 
-  if (flag) printf ("2: e=%.36Le\n", e);
-
   /* now e <= d < 2e */
   XPUSHs(sv_2mortal(newSVpv("0.", 0)));
   returns ++;
 
-  if (flag) printf ("3: d=%.36Le e=%.36Le prec=%lu\n", d, e, prec);
-  while (d > (long double) 0.0) {
+  while (d > (ARGTYPE) 0.0) {
       prec++;
       if(d >= e) {
         XPUSHs(sv_2mortal(newSVpv("1", 0)));
         returns ++;
-        d = (long double) ((long double) d - (long double) e);
+        d = (ARGTYPE) ((ARGTYPE) d - (ARGTYPE) e);
       }
       else {
         XPUSHs(sv_2mortal(newSVpv("0", 0)));
         returns ++;
       }
-      e *= (long double) 0.5;
-      if (flag) printf ("4: d=%.36Le e=%.36Le prec=%lu\n", d, e, prec);
+      e *= (ARGTYPE) 0.5;
   }
 
   XPUSHs(sv_2mortal(newSViv(exp)));
@@ -257,62 +275,66 @@ SV * _bin2val(pTHX_  SV * precision, SV * exponent, SV * bin) {
   IV i, prec;
   prec = SvIV(precision);
 
-#ifdef NV_IS_LONG_DOUBLE
-  long double d = 0.0L;
-  long double exp  = (long double)SvNV(exponent);
+  ARGTYPE d = (ARGTYPE)0.0;
+  ARGTYPE exp  = (ARGTYPE)SvNV(exponent);
   for(i = 0; i < prec; i++) {
-    if(SvIV(*(av_fetch((AV*)SvRV(bin), i, 0)))) d += powl(2.0L, exp);
-    exp -= 1.0L;
-  }
-
-#else
-  double d = 0.0;
-  double exp  = (double)SvNV(exponent);
-  for(i = 0; i < prec; i++) {
-    if(SvIV(*(av_fetch((AV*)SvRV(bin), i, 0)))) d += pow(2.0, exp);
-    exp -= 1.0;
-  }
+    if(SvIV(*(av_fetch((AV*)SvRV(bin), i, 0))))
+#ifdef NV_IS_FLOAT128
+     d += powq(2.0Q, exp);
 #endif
+#ifdef NV_IS_LONG_DOUBLE
+     d += powl(2.0L, exp);
+#endif
+#ifdef NV_IS_DOUBLE
+     d += pow(2.0, exp);
+#endif
+    exp -= (ARGTYPE)1.0;
+  }
 
   return newSVnv(d);
 }
 
 SV * _bug_95e20(pTHX) {
+#ifdef NV_IS_FLOAT128
+  return newSVnv(95e20Q);
+#endif
 #ifdef NV_IS_LONG_DOUBLE
   return newSVnv(95e20L);
-#else
+#endif
+#ifdef NV_IS_DOUBLE
   return newSVnv(95e20);
 #endif
 }
 
 SV * _bug_1175557635e10(pTHX) {
+#ifdef NV_IS_FLOAT128
+  return newSVnv(1175557635e10Q);
+#endif
 #ifdef NV_IS_LONG_DOUBLE
   return newSVnv(1175557635e10L);
-#else
+#endif
+#ifdef NV_IS_DOUBLE
   return newSVnv(1175557635e10);
 #endif
 }
 
 void Cprintf(pTHX_ char * fmt, SV * nv) {
-
-#ifdef NV_IS_LONG_DOUBLE
-  printf(fmt, (long double)SvNV(nv));
-#else
-  printf(fmt, (double)SvNV(nv));
-#endif
-
-}
+  printf(fmt, (ARGTYPE)SvNV(nv));
+}  
 
 void Csprintf(pTHX_ char * fmt, SV * nv, int size) {
    dXSARGS;
    char * out;
 
    Newx(out, size, char);
-   if(out == NULL) croak("Failed to allcoate memory in Csprintf function");
-
+   if(out == NULL) croak("Failed to allocate memory in Csprintf function");
+#ifdef NV_IS_FLOAT128
+   quadmath_snprintf(out, size, fmt, (__float128)SvNV(nv));
+#endif
 #ifdef NV_IS_LONG_DOUBLE
    sprintf(out, fmt, (long double)SvNV(nv));
-#else
+#endif
+#ifdef NV_IS_DOUBLE
    sprintf(out, fmt, (double)SvNV(nv));
 #endif
 
@@ -321,7 +343,7 @@ void Csprintf(pTHX_ char * fmt, SV * nv, int size) {
    XSRETURN(1);
 
 }
-MODULE = Math::NV  PACKAGE = Math::NV
+MODULE = Math::NV  PACKAGE = Math::NV  
 
 PROTOTYPES: DISABLE
 
@@ -351,17 +373,16 @@ OUTPUT:  RETVAL
 
 unsigned long
 mant_dig ()
-
+		
 
 void
-_ld2binary (ld, flag)
+_ld2binary (ld)
 	SV *	ld
-	long	flag
         PREINIT:
         I32* temp;
         PPCODE:
         temp = PL_markstack_ptr++;
-        _ld2binary(aTHX_ ld, flag);
+        _ld2binary(aTHX_ ld);
         if (PL_markstack_ptr != temp) {
           /* truly void, because dXSARGS not invoked */
           PL_markstack_ptr = temp;
@@ -371,14 +392,13 @@ _ld2binary (ld, flag)
         return; /* assume stack size is correct */
 
 void
-_ld_str2binary (ld, flag)
+_ld_str2binary (ld)
 	char *	ld
-	long	flag
         PREINIT:
         I32* temp;
         PPCODE:
         temp = PL_markstack_ptr++;
-        _ld_str2binary(aTHX_ ld, flag);
+        _ld_str2binary(aTHX_ ld);
         if (PL_markstack_ptr != temp) {
           /* truly void, because dXSARGS not invoked */
           PL_markstack_ptr = temp;
