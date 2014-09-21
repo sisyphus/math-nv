@@ -25,7 +25,7 @@ DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
 sub dl_load_flags {0} # Prevent DynaLoader from complaining and croaking
 
 sub ld2binary {
-  my @ret = _ld2binary($_[0], $_[1]);
+  my @ret = _ld2binary($_[0]);
   my $prec = pop(@ret);
   my $exp = pop(@ret);
   my $mantissa = join '', @ret;
@@ -33,7 +33,7 @@ sub ld2binary {
 }
 
 sub ld_str2binary {
-  my @ret = _ld_str2binary($_[0], $_[1]);
+  my @ret = _ld_str2binary($_[0]);
   my $prec = pop(@ret);
   my $exp = pop(@ret);
   my $mantissa = join '', @ret;
@@ -152,28 +152,24 @@ Math::NV - assign correct value to perl's NV
     It returns the value of the C macro DBL_MANT_DIG or LDBL_MANT_DIG,
     depending upon whichever is appropriate for perl's configuration.
 
-   ($mantissa, $exponent, $precision) = ld2binary($nv, $flag);
+   ($mantissa, $exponent, $precision) = ld2binary($nv);
 
     Uses code taken from tests/tset_ld.c in the mpfr library source
     and returns a base 2 representation of the value contained in the
     NV $nv - irrespective of whether the NV type ($Config{nvtype}) is
     double or long double.
-    If $flag is true, it also prints out additional information during
-    calculation.
     $mantissa is the mantissa (significand).
     $exponent is the exponent.
     $precision is the precision (in bits) of the mantissa - trailing
     zero bits are not counted.
 
 
-   ($mantissa, $exponent, $precision) = ld_str2binary($str, $flag);
+   ($mantissa, $exponent, $precision) = ld_str2binary($str);
 
     Uses code taken from tests/tset_ld.c in the mpfr library source
     and returns a base 2 representation of the value of the NV
     represented by the string $str - irrespective of whether the NV
-    type ($Config{nvtype}) is double or long double.
-    If $flag is true, it also prints out additional information during
-    calculation.
+    type ($Config{nvtype}) is double, long double or __float128.
     $mantissa is the mantissa (significand).
     $exponent is the exponent.
     $precision is the precision (in bits) of the mantissa - trailing
