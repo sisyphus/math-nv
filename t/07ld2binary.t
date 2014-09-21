@@ -20,7 +20,7 @@ if(nv_type() eq 'double') {
   warn "\nTests (5 & 6) will be done against POSIX::strtod\n";
   *alias_sub = \&POSIX::strtod;
 }
-elsif($] > 5.021003) {
+elsif($] > 5.021003 && nv_type() eq 'long double') {
   warn "\nTests (5 & 6) will be done against POSIX::strtold\n";
   *alias_sub = \&POSIX::strtold;
 }
