@@ -15,9 +15,10 @@ if($Config{nvsize} > 8 && $Config{osvers} =~ /powerpc/i) {
 
 require Data::Float; Data::Float->import('float_hex');
 
-if(mant_dig() != 53 && mant_dig() != 64) {
+if(mant_dig() != 53 && mant_dig() != 64 && mant_dig() != 113) {
   warn "Skipping tests - they don't accommodate an NV that has a ", mant_dig(), "-bit mantissa\n";
   for(1 .. $tests) {print "ok $_\n";}
+  exit 0;
 }
 
 my $needed = 0;
@@ -27,7 +28,8 @@ warn "Setting \$nv to 69659e-292\n";
 
 my $nv = '69659e-292';
 my $correct = nv_type() eq 'double' ? '+0x1.0f8a1ebc5050cp-954'
-                                    : '+0x1.0f8a1ebc5050c800p-954';
+                                    : nv_type() eq 'long double' ? '+0x1.0f8a1ebc5050c800p-954'
+                                                                 : '+0x1.0f8a1ebc5050c7ff54a076b65d6dp-954';
 
 if($nv == nv('69659e-292')) {
   warn"1. Perl and C agree that 69659e-292 is $nv\n";
