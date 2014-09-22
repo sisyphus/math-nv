@@ -160,19 +160,19 @@ void _ld2binary (pTHX_ SV * ld) {
   /* now e <= d < 2e */
   XPUSHs(sv_2mortal(newSVpv("0.", 0)));
   returns ++;
-  
-  while (d > (long double) 0.0) {
+
+  while (d > (ARGTYPE) 0.0) {
       prec++;
       if(d >= e) {
         XPUSHs(sv_2mortal(newSVpv("1", 0)));
         returns ++;
-        d = (long double) ((long double) d - (long double) e);
+        d = (ARGTYPE) ((ARGTYPE) d - (ARGTYPE) e);
       }
       else {
         XPUSHs(sv_2mortal(newSVpv("0", 0)));
         returns ++;
       }
-      e *= (long double) 0.5;
+      e *= (ARGTYPE) 0.5;
   }
 
   XPUSHs(sv_2mortal(newSViv(exp)));
@@ -320,7 +320,7 @@ SV * _bug_1175557635e10(pTHX) {
 
 void Cprintf(pTHX_ char * fmt, SV * nv) {
   printf(fmt, (ARGTYPE)SvNV(nv));
-}  
+}
 
 void Csprintf(pTHX_ char * fmt, SV * nv, int size) {
    dXSARGS;
@@ -330,12 +330,8 @@ void Csprintf(pTHX_ char * fmt, SV * nv, int size) {
    if(out == NULL) croak("Failed to allocate memory in Csprintf function");
 #ifdef NV_IS_FLOAT128
    quadmath_snprintf(out, size, fmt, (__float128)SvNV(nv));
-#endif
-#ifdef NV_IS_LONG_DOUBLE
-   sprintf(out, fmt, (long double)SvNV(nv));
-#endif
-#ifdef NV_IS_DOUBLE
-   sprintf(out, fmt, (double)SvNV(nv));
+#else
+   sprintf(out, fmt, (ARGTYPE)SvNV(nv));
 #endif
 
    ST(0) = sv_2mortal(newSVpv(out, 0));
@@ -343,7 +339,7 @@ void Csprintf(pTHX_ char * fmt, SV * nv, int size) {
    XSRETURN(1);
 
 }
-MODULE = Math::NV  PACKAGE = Math::NV  
+MODULE = Math::NV  PACKAGE = Math::NV
 
 PROTOTYPES: DISABLE
 
@@ -373,7 +369,7 @@ OUTPUT:  RETVAL
 
 unsigned long
 mant_dig ()
-		
+
 
 void
 _ld2binary (ld)
