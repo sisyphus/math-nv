@@ -71,14 +71,12 @@ sub is_eq {
 
 sub mant2binary {
     my $prec = mant_dig();
-    my $format = $prec == 53 ? "F<" : "D<";
-    return scalar reverse unpack "b$prec", pack $format, $_[0];
+    return scalar reverse unpack "b$prec", pack "F<", $_[0];
 }
 
 sub mant_str2binary {
     my $prec = mant_dig();
-    my $format = $prec == 53 ? "F<" : "D<";
-    return scalar reverse unpack "b$prec", pack $format, "$_[0]";
+    return scalar reverse unpack "b$prec", pack "F<", "$_[0]";
 }
 
 1;
