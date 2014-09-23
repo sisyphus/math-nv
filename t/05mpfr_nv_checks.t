@@ -11,9 +11,12 @@ if($@) {
   exit 0;
 }
 
+
 my $compat1 = Math::MPFR::_has_longdouble() ? 1 : 0;
 my $compat2 = nv_type() eq "long double"    ? 1 : 0;
 my $got;
+
+my $compat3 = $Math::MPFR::VERSION > 3.22 && Math::MPFR::_can_pass_float128() ? 1 : 0;
 
 if(!$compat1 && $compat1 == $compat2) {
    *Rmpfr_g = \&Rmpfr_get_d;
@@ -22,6 +25,10 @@ if(!$compat1 && $compat1 == $compat2) {
 elsif($compat1 && $compat1 == $compat2) {
    *Rmpfr_g = \&Rmpfr_get_ld;
    $got = 'Rmpfr_get_ld';
+}
+elsif($compat3) {
+   *Rmpfr_g = \&Rmpfr_get_float128;
+   $got = 'Rmpfr_get_float128';
 }
 else {
   print "1..1\n";
