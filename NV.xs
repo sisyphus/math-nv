@@ -339,6 +339,15 @@ void Csprintf(pTHX_ char * fmt, SV * nv, int size) {
    XSRETURN(1);
 
 }
+
+/* Provide our own looks_like_number() for use by test suite. */
+
+int _looks_like_number(pTHX_ SV * x) {
+
+   if(looks_like_number(x)) return 1;
+   return 0;
+
+}
 MODULE = Math::NV  PACKAGE = Math::NV
 
 PROTOTYPES: DISABLE
@@ -460,4 +469,11 @@ Csprintf (fmt, nv, size)
         }
         /* must have used dXSARGS; list context implied */
         return; /* assume stack size is correct */
+
+int
+_looks_like_number (x)
+	SV *	x
+CODE:
+  RETVAL = _looks_like_number (aTHX_ x);
+OUTPUT:  RETVAL
 
