@@ -22,6 +22,13 @@ my @s = ('1e-298', 1e-298, '1e+129', 1e+129, exp(1), log(10), '69659e-292', 6965
 if(nv_type() eq 'double') {
   warn "\nTests (5 & 6) will be done against POSIX::strtod\n";
   $main::which = 1;
+  my $check = float_hex(bin2val('0.10000101111100000100011010000010100100111111000011101', -989, 53));
+  if($check =~ /0be08d0500000p\-990$/i) {
+    warn "\n  Your C compiler's pow() function is BUGGY.\n";
+    warn "  Expect to see test FAILURES because of this.\n";
+    warn "  Do not use this module's bin2val() sub with this compiler,\n";
+    warn "  as that sub uses the C compiler's pow() function\n\n";
+  }
   #*alias_sub = \&POSIX::strtod;
 }
 elsif($] > 5.021003 && nv_type() eq 'long double') {
@@ -39,10 +46,11 @@ else {
 my @ok = (1) x $t;
 
 for(my $i = 0; $i < @s; $i++) {
+  my $numstr = fix_decimal_point("$s[$i]"); # Some locale settings seem to screw up the decimal point.
   my @bin1 = ld2binary($s[$i]);
-  my @bin2 = ld2binary("$s[$i]");
+  my @bin2 = ld2binary($numstr);
   my @bin3 = ld_str2binary($s[$i]);
-  my @bin4 = ld_str2binary("$s[$i]");
+  my @bin4 = ld_str2binary($numstr);
 
   if(bin2val(@bin1) != $s[$i]) {
     warn "1 ($i): discrepancy wrt $s[$i]\n";
@@ -52,11 +60,11 @@ for(my $i = 0; $i < @s; $i++) {
     $ok[0] = 0;
   }
 
-    if(bin2val(@bin2) != "$s[$i]") {
+    if(bin2val(@bin2) != $numstr) {
     warn "2 ($i): discrepancy wrt $s[$i]\n";
     for(@bin2) {warn " $_\n"}
     warn " ", float_hex(bin2val(@bin2)), "\n";
-    warn " ", float_hex("$s[$i]"), "\n\n";
+    warn " ", float_hex($numstr), "\n\n";
     $ok[1] = 0;
  }
 
@@ -68,11 +76,11 @@ for(my $i = 0; $i < @s; $i++) {
     $ok[2] = 0;
   }
 
-    if(bin2val(@bin4) != scalar nv("$s[$i]")) {
+    if(bin2val(@bin4) != scalar nv($numstr)) {
     warn "4 ($i): discrepancy wrt $s[$i]\n";
     for(@bin4) {warn " $_\n"}
     warn " ", float_hex(bin2val(@bin4)), "\n";
-    warn " ", float_hex(nv("$s[$i]")), "\n\n";
+    warn " ", float_hex(nv($numstr)), "\n\n";
     $ok[3] = 0;
   }
 
@@ -111,4 +119,16 @@ sub alias_sub {
     return scalar nv($_[0]);
   }
 }
+
+sub fix_decimal_point {
+  my $numstr = $_[0];
+  return $numstr if Math::NV::_looks_like_number($numstr);
+  $numstr =~ s/\./,/;
+  return $numstr if Math::NV::_looks_like_number($numstr);
+  $numstr =~ s/,/./;
+  return $numstr if Math::NV::_looks_like_number($numstr);
+  return $_[0]; # give up
+}
+
+
 
