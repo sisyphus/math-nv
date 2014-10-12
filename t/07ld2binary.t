@@ -7,6 +7,8 @@ use Data::Float qw(float_hex);
 my $t = 6;
 print "1..6\n";
 
+$main::dp = POSIX::localeconv->{decimal_point};
+
 my @s = ('1e-298', 1e-298, '1e+129', 1e+129, exp(1), log(10), '69659e-292', 69659e-292, '95e20',
           95e20, '1175557635e10', 1175557635e10, '80811924651145035e-20', 80811924651145035e-20,
          '26039550862e-20', 26039550862e-20, '918e-295', 918e-295, '91563373e-300', 91563373e-300,
@@ -16,18 +18,22 @@ my @s = ('1e-298', 1e-298, '1e+129', 1e+129, exp(1), log(10), '69659e-292', 6965
          '-26039550862e-20', -26039550862e-20, '-918e-295', -918e-295, '-91563373e-300', -91563373e-300,
          '-897e-292', -897e-292,);
 
+
 if(nv_type() eq 'double') {
   warn "\nTests (5 & 6) will be done against POSIX::strtod\n";
-  *alias_sub = \&POSIX::strtod;
+  $main::which = 1;
+  #*alias_sub = \&POSIX::strtod;
 }
 elsif($] > 5.021003 && nv_type() eq 'long double') {
   warn "\nTests (5 & 6) will be done against POSIX::strtold\n";
-  *alias_sub = \&POSIX::strtold;
+  $main::which = 2;
+  #*alias_sub = \&POSIX::strtold;
 }
 else {
   # Test that nv($_) == nv($_) ... assume they will pass as there should be no nans.
   warn "\nNot doing tests (5 & 6) against POSIX\n";
-  *alias_sub = \&alias_fallback;
+  $main::which = 3;
+  #*alias_sub = \&alias_fallback;
 }
 
 my @ok = (1) x $t;
@@ -90,4 +96,19 @@ for(1..$t) {
   else {print "not ok $_\n"}
 }
 
-sub alias_fallback {return scalar nv($_[0])}
+sub alias_sub {
+  if($main::which == 1) {
+    my $numstr = shift;
+    $numstr =~ s/\./$main::dp/; # Use localeconv->{decimal_point}
+    return scalar POSIX::strtod($numstr);
+  }
+  elsif($main::which == 2) {
+    my $numstr = shift;
+    $numstr =~ s/\./$main::dp/;
+    return scalar POSIX::strtold($numstr);
+  }
+  else {
+    return scalar nv($_[0]);
+  }
+}
+
