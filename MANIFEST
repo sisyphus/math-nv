@@ -11,6 +11,7 @@ t/05mpfr_nv_checks.t
 t/06is_eq.t
 t/07mant2binary.t
 t/07ld2binary.t
+t/07ld2binary_doubledouble.t
 t/08compiler_bugs.t
 t/09list_context.t
 t/10exponent_0_to_12.t
