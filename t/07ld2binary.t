@@ -2,10 +2,20 @@ use strict;
 use warnings;
 use POSIX;
 use Math::NV qw(:all);
-use Data::Float qw(float_hex);
 
 my $t = 6;
 print "1..6\n";
+
+my $md = mant_dig();
+
+if($md == 106) {
+  warn "\nSkipping all tests - Data::Float doesn't support this architecture\n";
+  print "ok $_\n" for 1..$t;
+  exit 0;
+}
+
+require Data::Float;
+Data::Float->import('float_hex');
 
 $main::dp = POSIX::localeconv->{decimal_point};
 
