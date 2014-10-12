@@ -5,9 +5,12 @@ my $defines = $Config::Config{nvtype} eq 'long double'
                 : $Config::Config{nvtype} eq '__float128' ? '-DNV_IS_FLOAT128'
                                                           : '-DNV_IS_DOUBLE';
 
+print "Defining $defines\n";
+
 #Data::Float is handy for testing, but won't work with powerpc 'long double' builds.
-my $prereq =  $Config::Config{nvsize} > 8 && $Config::Config{osvers} =~ /powerpc/i
-                    ? {}
+my $prereq = $Config::Config{longdblkind} == 5 || $Config::Config{longdblkind} == 6 ||
+             ($Config::Config{nvsize} > 8 && $Config::Config{osvers} =~ /powerpc/i)
+                    ? {'Data::Float::DoubleDouble' => '1.07'}
                     : {'Data::Float' => '0.012'};
 
 my %options = %{
