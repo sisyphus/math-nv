@@ -102,8 +102,8 @@ Math::NV - assign correct value to perl's NV
    $iv is set to the number of characters in the input string that
    were unparsed.
 
-   The nv() function assigns the value at the C (XS) level using
-   either the C function strtod() or strtold() - whichever is
+   The nv() function assigns the value at the C (XS) level using the
+   C function strtod(), strtold(), or strtofloat128() - whichever is
    appropriate for your perl's configuration.
 
    Obviously, we are therefore relying upon absence of bugs in the
@@ -127,13 +127,15 @@ Math::NV - assign correct value to perl's NV
     the C standard library function strtod($str) assigns.
     On perls whose NV is a C "long double", assigns to $nv the value
     that the C standard library function strtold($str) assigns.
+    On perls whose NV is a C "__float128", assigns to $nv the value
+    that the C standard library function strtofloat128($str) assigns.
     In list context, also returns the number of characters that were
     unparsed (ignored).
 
    $nv_type = nv_type();
 
-    Returns either "double" or "long double", depending upon the way
-    perl has been configured.
+    Returns "double", "long double", or "__float128" depending upon
+    the way perl has been configured.
     The expectation is that it returns the same as $Config{nvtype}.
     (Please file a bug report if you find otherwise.)
 
@@ -147,15 +149,16 @@ Math::NV - assign correct value to perl's NV
     Returns the number of bits the NV mantissa contains. This is
     normally 53 if nv_type() is double - otherwise usually (but by no
     means always) 64.
-    It returns the value of the C macro DBL_MANT_DIG or LDBL_MANT_DIG,
-    depending upon whichever is appropriate for perl's configuration.
+    It returns the value of the C macro DBL_MANT_DIG, LDBL_MANT_DIG,
+    or FLT128_MANT_DIG depending upon whichever is appropriate for
+    perl's configuration.
 
    ($mantissa, $exponent, $precision) = ld2binary($nv);
 
     Uses code taken from tests/tset_ld.c in the mpfr library source
     and returns a base 2 representation of the value contained in the
     NV $nv - irrespective of whether the NV type ($Config{nvtype}) is
-    double or long double.
+    double, long double or __float128.
     $mantissa is the mantissa (significand).
     $exponent is the exponent.
     $precision is the precision (in bits) of the mantissa - trailing
@@ -197,8 +200,8 @@ Math::NV - assign correct value to perl's NV
     Uses C's sprintf() function to format the NV $nv, according to the
     formatting specified by the string $fmt - and returns the result to
     $string. It's the responsibility of the caller to ensure that
-    $buffer_size specifies a large enough (at least) number of characters
-    to accommodate C's sprintf formatting of $nv.
+    $buffer_size specifies a large enough number of characters to
+    accommodate C's sprintf formatting of $nv.
 
 =head1 LICENSE
 
