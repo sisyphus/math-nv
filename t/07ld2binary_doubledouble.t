@@ -18,6 +18,7 @@ require Data::Float::DoubleDouble;
 Data::Float::DoubleDouble->import('float_H');
 
 $main::dp = POSIX::localeconv->{decimal_point};
+warn "POSIX::localeconv->{decimal_point} is $main::dp\n";
 
 my @s = ('1e-298', 1e-298, '1e+129', 1e+129, exp(1), log(10), '69659e-292', 69659e-292, '95e20',
           95e20, '1175557635e10', 1175557635e10, '80811924651145035e-20', 80811924651145035e-20,
