@@ -7,9 +7,13 @@ my $defines = $Config::Config{nvtype} eq 'long double'
 
 print "Defining $defines\n";
 
+# For testing for DoubleDouble nvtype:
+my $nv = 1.0;
+my $x = $nv + (2 ** -1000);
+
 #Data::Float is handy for testing, but won't work with powerpc 'long double' builds.
 my $prereq = $Config::Config{longdblkind} == 5 || $Config::Config{longdblkind} == 6 ||
-             ($Config::Config{nvsize} > 8 && $Config::Config{osvers} =~ /powerpc/i)
+             ($Config::Config{nvsize} > 8 && $x > $nv)
                     ? {'Data::Float::DoubleDouble' => '1.07'}
                     : {'Data::Float' => '0.012'};
 
