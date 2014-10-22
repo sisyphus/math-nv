@@ -14,8 +14,14 @@ if($md != 106) {
   exit 0;
 }
 
-require Data::Float::DoubleDouble;
-Data::Float::DoubleDouble->import('float_H');
+eval{require Data::Float::DoubleDouble;
+Data::Float::DoubleDouble->import('float_H');};
+
+if($@) {
+  warn "\nSkipping all tests - Data::Float::DoubleDouble could not be loaded:\n $@\n";
+  print "ok $_\n" for 1..$t;
+  exit 0;
+}
 
 $main::dp = POSIX::localeconv->{decimal_point};
 warn "POSIX::localeconv->{decimal_point} is $main::dp\n";
