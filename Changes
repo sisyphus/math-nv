@@ -2,6 +2,8 @@ Revision history for Perl module Math::NV
 
 0.07
     - Make corrections to POD documentation.
+    - Remove Data::Float::DoubleDouble from list of prereqs on doubledouble builds
+      (as that module already lists this module as a prereq).
 
 0.06
     - Accommodate nvtype of __float128
