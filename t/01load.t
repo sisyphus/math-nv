@@ -12,7 +12,7 @@ else {
 }
 
 if(!$@) {
-  if($Math::NV::VERSION eq '0.07') {print "ok 2\n"}
+  if($Math::NV::VERSION eq '0.08') {print "ok 2\n"}
   else {
     warn "Wrong version of Math::NV - we have $Math::NV::VERSION\n";
     print "not ok 2\n";
