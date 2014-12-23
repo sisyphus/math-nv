@@ -85,7 +85,7 @@ __END__
 
 =head1 NAME
 
-Math::NV - assign correct value to perl's NV
+Math::NV - assign to NV using C's strtod/strtold/strtoflt128 (as appropriate)
 
 =head1 DESCRIPTION
 
