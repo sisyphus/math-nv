@@ -13,12 +13,12 @@ DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
 
 @Math::NV::EXPORT = ();
 @Math::NV::EXPORT_OK = qw(
-    nv nv_type mant_dig ld2binary ld_str2binary is_eq mant2binary mant_str2binary
+    nv nv_type mant_dig ld2binary ld_str2binary is_eq
     bin2val Cprintf Csprintf
     );
 
 %Math::NV::EXPORT_TAGS = (all => [qw(
-    nv nv_type mant_dig ld2binary ld_str2binary is_eq mant2binary mant_str2binary
+    nv nv_type mant_dig ld2binary ld_str2binary is_eq
     bin2val Cprintf Csprintf
     )]);
 
@@ -69,16 +69,6 @@ sub is_eq {
   return 0;
 }
 
-sub mant2binary {
-    my $prec = mant_dig();
-    return scalar reverse unpack "b$prec", pack "F<", $_[0];
-}
-
-sub mant_str2binary {
-    my $prec = mant_dig();
-    return scalar reverse unpack "b$prec", pack "F<", "$_[0]";
-}
-
 1;
 
 __END__
@@ -94,26 +84,16 @@ Math::NV - assign to NV using C's strtod/strtold/strtoflt128 (as appropriate)
    # or, in list context:
    my($nv, $iv) = nv('1e-298');
 
-   The above snippet will assign a correct value for 1e-298 to $nv.
-   Doing simply "$nv = 1e-298;" may *not* do that. (The test suite
-   specifically checks and reports whether 1e-298 can correctly be
-   assigned directly to a perl scalar. It also checks some other
-   values).
+   The nv() function assigns the specified value of its argument using
+   the C function strtod(), strtold(), or strtoflt128() - whichever
+   is appropriate for your perl's configuration. (The value assigned
+   by the C function may differ to the one that perl assigns.)
    $iv is set to the number of characters in the input string that
    were unparsed.
 
-   The nv() function assigns the value at the C (XS) level using the
-   C function strtod(), strtold(), or strtofloat128() - whichever is
-   appropriate for your perl's configuration.
-
-   Obviously, we are therefore relying upon absence of bugs in the
-   way your compiler/libc assigns strings to floats. (Hopefully, if
-   such bugs are present, this will become evident in the form of
-   failures in the module's test suite.)
-
    NOTE:
-    For an NV $nv, it's not guaranteed that nv($nv) and nv("$nv")
-    will be equivalent. For example, on many of my 64-bit MS Win
+    It's not guaranteed that nv($nv) and nv("$nv") will return the
+    same value. For example, on many of my 64-bit MS Win
     builds of perl, a print() of nv('1e-298') will output 1e-298,
     whereas a print() of nv(1e-298) outputs 9.99999999999999e-299.
 
@@ -181,16 +161,6 @@ Math::NV - assign to NV using C's strtod/strtold/strtoflt128 (as appropriate)
     Takes the return values of ld_str2binary() or ld2binary() and
     returns the original NV. (Probably doesn't work if the original
     NV is an inf or a nan.)
-
-   $mantissa = mant2binary($nv);
-
-    Returns a base 2 representation of the mantissa of $nv using
-    perl's unpack/pack functions.
-
-   $mantissa = mant_str2binary($str);
-
-    Returns a base 2 representation of the mantissa of the value
-    represented by $str. (Also uses perl's unpack/pack functions.)
 
    Cprintf($fmt, $nv);
     Uses C's printf() function to format the NV $nv, according to the
