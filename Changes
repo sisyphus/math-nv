@@ -1,7 +1,12 @@
 Revision history for Perl module Math::NV
 
 0.08
-
+    - Change tack to concentrate on simply checking that the Math::NV functions
+      work correctly, and don't worry about trying to uncover discrepancies between
+      respective values assigned by perl and C. (This calls for a major change of
+      the test suite, and a small change to the documentation.)
+    - Remove Data::Float dependency.
+    - Remove mant2binary() and mant_str2binary(). (They were incorrect, and unnecessary.)
 
 0.07
     - Make corrections to POD documentation.
