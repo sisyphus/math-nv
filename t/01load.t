@@ -3,7 +3,7 @@ use warnings;
 
 print "1..2\n";
 
-eval{require Math::NV;};
+eval{require Math::NV; Math::NV->import(':all');};
 
 unless($@) {print "ok 1\n"}
 else {
@@ -19,3 +19,4 @@ if(!$@) {
   }
 }
 else {print "ok 2\n"}
+
