@@ -1,5 +1,7 @@
 Revision history for Perl module Math::NV
 
+0.09
+
 0.08
     - Change tack to concentrate on simply checking that the Math::NV functions
       work correctly, and don't worry about trying to uncover discrepancies between
