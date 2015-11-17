@@ -10,6 +10,7 @@ t/03nv.t
 t/04nv_type.t
 t/05ld2binary.t
 t/06is_eq.t
+t/07nv_mpfr.t
 t/11sprintf.t
 t/pod.t
 
