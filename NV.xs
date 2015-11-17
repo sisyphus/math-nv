@@ -42,18 +42,31 @@ typedef long double ARGTYPE;
 typedef double ARGTYPE;
 #endif
 
-void nv(pTHX_ char * str) {
+SV * _itsa(pTHX_ SV * a) {
+     if(SvUOK(a)) return newSVuv(1);
+     if(SvIOK(a)) return newSVuv(2);
+     if(SvNOK(a)) return newSVuv(3);
+     if(SvPOK(a)) return newSVuv(4);
+     return newSVuv(0);
+}
+
+void nv(pTHX_ SV * str) {
    dXSARGS;
    char * unparsed;
 #ifdef NV_IS_FLOAT128
-   float128 num = strtoflt128(str, &unparsed);
+   float128 num = strtoflt128(SvPV_nolen(str), &unparsed);
 #endif
 #ifdef NV_IS_LONG_DOUBLE
-   long double num = strtold(str, &unparsed);
+   long double num = strtold(SvPV_nolen(str), &unparsed);
 #endif
 #ifdef NV_IS_DOUBLE
-   double num = strtod (str, &unparsed);
+   double num = strtod (SvPV_nolen(str), &unparsed);
 #endif
+
+   if(!SvIV(get_sv("Math::NV::no_warn", 0))) {
+     if(SvUV(_itsa(aTHX_ str)) != 4)
+       warn("Argument given to nv function is not a string - probably not what you want");
+   }
 
    ST(0) = sv_2mortal(newSVnv(num));
    if(GIMME == G_ARRAY) {
@@ -348,14 +361,25 @@ int _looks_like_number(pTHX_ SV * x) {
    return 0;
 
 }
+
+
+
+
 MODULE = Math::NV  PACKAGE = Math::NV
 
 PROTOTYPES: DISABLE
 
 
+SV *
+_itsa (a)
+	SV *	a
+CODE:
+  RETVAL = _itsa (aTHX_ a);
+OUTPUT:  RETVAL
+
 void
 nv (str)
-	char *	str
+	SV *	str
         PREINIT:
         I32* temp;
         PPCODE:
