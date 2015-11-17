@@ -7,20 +7,35 @@ require Exporter;
 *import = \&Exporter::import;
 require DynaLoader;
 
-$Math::NV::VERSION = '0.09';
+$Math::NV::VERSION = '1.0';
 
 DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
 
 @Math::NV::EXPORT = ();
 @Math::NV::EXPORT_OK = qw(
     nv nv_type mant_dig ld2binary ld_str2binary is_eq
-    bin2val Cprintf Csprintf
+    bin2val Cprintf Csprintf nv_mpfr is_eq_mpfr
     );
 
 %Math::NV::EXPORT_TAGS = (all => [qw(
     nv nv_type mant_dig ld2binary ld_str2binary is_eq
-    bin2val Cprintf Csprintf
+    bin2val Cprintf Csprintf nv_mpfr is_eq_mpfr
     )]);
+
+eval {require Math::MPFR;};
+
+if($@) {$Math::NV::no_mpfr = $@}
+else   {$Math::NV_no_mpfr = 0 }
+
+$Math::NV::no_warn = 0; # set to true to disable warning about non-string argument
+
+my %_itsa = (
+  1 => 'UV',
+  2 => 'IV',
+  3 => 'NV',
+  4 => 'string',
+  0 => 'unknown',
+);
 
 sub dl_load_flags {0} # Prevent DynaLoader from complaining and croaking
 
@@ -64,10 +79,117 @@ sub bin2val {
 }
 
 sub is_eq {
+  unless($Math::NV::no_warn) {
+    my $itsa = $_[0];
+    $itsa = _itsa($itsa); # make sure that $_[0] IOK flag is not set
+    warn "Argument given to is_eq() is $_itsa{$itsa}, not a string - probably not what you want"
+    if $itsa != 4;
+  }
   my $nv = $_[0];
-  return 1 if $nv == nv($_[0]);
+  my $check = nv($_[0]);
+  return 1 if $nv == $check;
   return 0;
 }
+
+sub is_eq_mpfr {
+
+  if($Math::NV::no_mpfr) {die "In is_eq_mpfr(): $Math::NV::no_mpfr"}
+
+  unless($Math::NV::no_warn) {
+    my $itsa = $_[0];
+    $itsa = _itsa($itsa); # make sure that $_[0] IOK flag is not set
+    warn "Argument given to is_eq() is $_itsa{$itsa}, not a string - probably not what you want"
+    if $itsa != 4;
+  }
+
+  my $ret = 0;
+  my $nv = $_[0];
+  my $bits = mant_dig();
+  $bits = 2098 if $bits == 106; # double double
+
+  my $prec = Math::MPFR::Rmpfr_get_default_prec();
+  Math::MPFR::Rmpfr_set_default_prec($bits);
+
+  my $fr = Math::MPFR->new($nv);
+
+  if($nv == Math::MPFR::Rmpfr_get_NV($fr, 0)) {$ret = 1}
+  else {
+    warn "In is_eq_mpfr:\n",
+         scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs ",
+         scalar(reverse(unpack("h*", pack("F<", Math::MPFR::Rmpfr_get_NV($fr, 0))))), "\n\n";
+  }
+  Math::MPFR::Rmpfr_set_default_prec($prec);
+  return $ret;
+
+}
+
+sub nv_mpfr {
+
+  if($Math::NV::no_mpfr) {die "In nv_mpfr(): $Math::NV::no_mpfr"}
+
+  unless($Math::NV::no_warn) {
+    my $itsa = $_[0];
+    $itsa = _itsa($itsa); # make sure that $_[0] IOK flag is not set
+    warn "Argument given to is_eq() is $_itsa{$itsa}, not a string - probably not what you want"
+    if $itsa != 4;
+  }
+
+  my $bits;
+
+  if(!defined($_[1])) {$bits = mant_dig()}
+  else {$bits = $_[1]}
+
+  return _double_double($_[0]) if $bits == 106; # doubledouble
+
+  die "Specified bits > mant_dig() ($bits > ", mant_dig(), ")"
+    if $bits > mant_dig();
+
+
+  my $prec = Math::MPFR::Rmpfr_get_default_prec();
+  Math::MPFR::Rmpfr_set_default_prec($bits);
+
+  my $val = Math::MPFR->new($_[0]);
+
+  if($bits == mant_dig() ) { # 53, 64, 106 or 113 bits
+    my $nv = Math::MPFR::Rmpfr_get_NV($val, 0);
+    Math::MPFR::Rmpfr_set_default_prec($prec);
+    return [$nv, scalar(reverse(unpack("h*", pack("F<", $nv))))];
+  }
+
+  if($bits == 53) {
+    my $nv = Math::MPFR::Rmpfr_get_d($val, 0);
+    Math::MPFR::Rmpfr_set_default_prec($prec);
+    return [$nv, scalar(reverse(unpack("h*", pack("d<", $nv))))];
+  }
+
+  if($bits == 64) {
+    my $nv = Math::MPFR::Rmpfr_get_ld($val, 0);
+    Math::MPFR::Rmpfr_set_default_prec($prec);
+    # cannot use "D" template with __float128. Need alternative code for that.
+    return [$nv, scalar(reverse(unpack("h*", pack("D<", $nv))))];
+  }
+
+  die "Unrecognized value for bits ($bits)";
+}
+
+
+sub _double_double {
+  my $prec = Math::MPFR::Rmpfr_get_default_prec();
+  Math::MPFR::Rmpfr_set_default_prec(2098);
+  my $val = Math::MPFR->new(shift);
+  my @val = _dd_obj($val);
+  Math::MPFR::Rmpfr_set_default_prec(2098);
+  return [$val[0], $val[1], scalar(reverse(unpack("h*", pack("d<", $val[0])))),
+                            scalar(reverse(unpack("h*", pack("d<", $val[1]))))];
+}
+
+sub _dd_obj {
+  my $obj = shift;
+  my $msd = Math::MPFR::Rmpfr_get_d($obj, 0);
+  $obj -= $msd;
+  return ($msd, Math::MPFR::Rmpfr_get_d($obj, 0));
+}
+
 
 1;
 
@@ -112,6 +234,22 @@ Math::NV - assign to NV using C's strtod/strtold/strtoflt128 (as appropriate)
     In list context, also returns the number of characters that were
     unparsed (ignored).
 
+   $arref = nv_mpfr($str, [$bits]); # $arref is a reference to a list.
+
+    If $bits is not specified, it will be set to the value returned by
+    mant_dig().
+    Valid values for $bits are 53 (double), 64 (long double), 106
+    (double-double) and 113 (__float128).
+    Uses the mpfr library to return the value represented by $str to
+    the precision represented by $bits.
+    For the double the list contains 4 elements - the most significant
+    double, the least siginificant double, hex dump of the most
+    significant double and hex dump of the least significant double.
+    For all other types, the list contains just 2 values - the actual
+    double/longdouble/__float128 and its hex dump.
+    The enticement to use this function is that mpfr is far more
+    reliable than C as regards correct setting of floating point values.
+
    $nv_type = nv_type();
 
     Returns "double", "long double", or "__float128" depending upon
@@ -120,8 +258,15 @@ Math::NV - assign to NV using C's strtod/strtold/strtoflt128 (as appropriate)
     (Please file a bug report if you find otherwise.)
 
    $bool = is_eq($str);
+
      Returns true if the value perl assigns from the string $str is
      equal to the value C assigns from the same string.
+     Else returns false.
+
+   $bool = is_eq_mpfr($str);
+
+     Returns true if the value perl assigns from the string $str is
+     equal to the value mpfr assigns from the same string.
      Else returns false.
 
    $digits = mant_dig();
@@ -173,11 +318,27 @@ Math::NV - assign to NV using C's strtod/strtold/strtoflt128 (as appropriate)
     $buffer_size specifies a large enough number of characters to
     accommodate C's sprintf formatting of $nv.
 
+=head1 PACKAGE VARIABLES
+
+   $Math::NV::no_mpfr
+
+    Set by default to 0 (if NV.pm can load Math::MPFR) or $@ (if NV.pm
+    cannot load Math::MPFR).
+    Can be overwritten by assigning directly to it.
+
+   $Math::NV::no_warn
+
+    Initially set to 0 - which means that if either nv(), nv_mpfr(),
+    is_eq() or is_eq_mpfr() are handed an argument that is not a string,
+    then a warning will be emitted.
+    To disable this warning, simply assign 1 (or any other true numeric
+    value) to this variable.
+
 =head1 LICENSE
 
    This program is free software; you may redistribute it and/or modify
    it under the same terms as Perl itself.
-   Copyright 2013-14 Sisyphus
+   Copyright 2013-15 Sisyphus
 
 
 =head1 AUTHOR
