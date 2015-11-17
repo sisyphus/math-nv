@@ -1,6 +1,9 @@
 Revision history for Perl module Math::NV
 
-0.09
+ 1.0
+    - Add nv_mpfr() and is_eq_mpfr() functions. (Also added $Math::NV::no_mpfr.)
+    - Add $Math::NV::no_warn; and check is_arg(), is_arg_mpfr(), nv_mpfr() and nv()
+      for non-string args.
 
 0.08
     - Change tack to concentrate on simply checking that the Math::NV functions
