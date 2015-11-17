@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use Math::NV qw(:all);
 
-print "1..3\n";
+print "1..4\n";
 
 # Test with values for which perl and C will (hopefully) agree.
 
@@ -27,3 +27,15 @@ else {
   warn "\nExpected -1.125\nGot $nv\n";
   print "not ok 3\n";
 }
+
+$Math::NV::no_warn = 1; # disable warning about non-string arg provided to nv();
+
+my $nv2 = nv(-1.5);
+
+if($nv2 == -1.5) {print "ok 4\n"}
+else {
+  warn "\nexpecting -1.5, got $nv2\n";
+  print "not ok 4\n";
+}
+
+$Math::NV::no_warn = 0; # re-enable warning
