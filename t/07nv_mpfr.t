@@ -70,10 +70,19 @@ else {
   $val =     nv_mpfr('2.3', mant_dig());
   my $val2 = nv_mpfr('2.3');
 
-  if($val eq $val2) {print "ok 7\n"}
+  if(mant_dig == 106) {
+    if("@$val" eq "@$val2") {print "ok 7\n"}
+    else {
+      warn "\nexpected\n@$val eq\n@$val2\n";
+      print "not ok 7\n";
+    }
+  }
   else {
-    warn "\nexpected $val, got $val2\n";
-    print "not ok 7\n";
+    if($val eq $val2) {print "ok 7\n"}
+    else {
+      warn "\nexpected $val, got $val2\n";
+      print "not ok 7\n";
+    }
   }
 
   $val = nv_mpfr('1e+127', 53);
