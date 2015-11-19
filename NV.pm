@@ -92,6 +92,21 @@ sub is_eq {
   my $nv = $_[0];
   my $check = nv($_[0]);
   return 1 if $nv == $check;
+  if(mant_dig() == 64) {
+    # pack/unpack like to deliver irrelevant (ie ignored) leading bytes
+    # if NV is 80-bit long double
+    my $first = scalar(reverse(unpack("h*", pack("F<", $nv))));
+    $first = substr($first, length($first) - 20, 20);
+    my $second = scalar(reverse(unpack("h*", pack("F<", $check))));
+    $second = substr($second, length($second) - 20, 20);
+    warn "In is_eq:\n$first vs $second\n\n";
+  }
+  else {
+    warn "In is_eq:\n",
+      scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs ",
+      scalar(reverse(unpack("h*", pack("F<", $check)))), "\n\n";
+  }
+
   return 0;
 }
 
@@ -116,9 +131,20 @@ sub is_eq_mpfr {
 
   if($nv == Math::MPFR::Rmpfr_get_NV($fr, 0)) {$ret = 1}
   else {
-    warn "In is_eq_mpfr:\n",
-         scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs ",
-         scalar(reverse(unpack("h*", pack("F<", Math::MPFR::Rmpfr_get_NV($fr, 0))))), "\n\n";
+    if($bits == 64) {
+      # pack/unpack like to deliver irrelevant (ie ignored) leading bytes
+      # if NV is 80-bit long double
+      my $first = scalar(reverse(unpack("h*", pack("F<", $nv))));
+      $first = substr($first, length($first) - 20, 20);
+      my $second = scalar(reverse(unpack("h*", pack("F<", Math::MPFR::Rmpfr_get_NV($fr, 0)))));
+      $second = substr($second, length($second) - 20, 20);
+      warn "In is_eq_mpfr:\n$first vs $second\n\n";
+    }
+    else {
+      warn "In is_eq_mpfr:\n",
+        scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs ",
+        scalar(reverse(unpack("h*", pack("F<", Math::MPFR::Rmpfr_get_NV($fr, 0))))), "\n\n";
+    }
   }
 
   return $ret;
