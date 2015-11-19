@@ -2,6 +2,7 @@
 package Math::NV;
 use warnings;
 use strict;
+use 5.010;
 
 require Exporter;
 *import = \&Exporter::import;
@@ -35,6 +36,13 @@ my %_itsa = (
   3 => 'NV',
   4 => 'string',
   0 => 'unknown',
+);
+
+my %_hex_dig = (
+  53 => 16,
+  64 => 20,
+ 106 => 32,
+ 113 => 32,
 );
 
 sub dl_load_flags {0} # Prevent DynaLoader from complaining and croaking
@@ -107,10 +115,8 @@ sub is_eq_mpfr {
   my $bits = mant_dig();
   $bits = 2098 if $bits == 106; # double double
 
-  my $prec = Math::MPFR::Rmpfr_get_default_prec();
-  Math::MPFR::Rmpfr_set_default_prec($bits);
-
-  my $fr = Math::MPFR->new($nv);
+  my $fr = Math::MPFR::Rmpfr_init2($bits);
+  Math::MPFR::Rmpfr_set_str($fr, $nv, 10, 0);
 
   if($nv == Math::MPFR::Rmpfr_get_NV($fr, 0)) {$ret = 1}
   else {
@@ -118,7 +124,7 @@ sub is_eq_mpfr {
          scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs ",
          scalar(reverse(unpack("h*", pack("F<", Math::MPFR::Rmpfr_get_NV($fr, 0))))), "\n\n";
   }
-  Math::MPFR::Rmpfr_set_default_prec($prec);
+
   return $ret;
 
 }
@@ -141,32 +147,32 @@ sub nv_mpfr {
 
   return _double_double($_[0]) if $bits == 106; # doubledouble
 
-  die "Specified bits > mant_dig() ($bits > ", mant_dig(), ")"
-    if $bits > mant_dig();
-
-
-  my $prec = Math::MPFR::Rmpfr_get_default_prec();
-  Math::MPFR::Rmpfr_set_default_prec($bits);
-
-  my $val = Math::MPFR->new($_[0]);
+  my $val = Math::MPFR::Rmpfr_init2($bits);
+  Math::MPFR::Rmpfr_set_str($val, $_[0], 10, 0);
 
   if($bits == mant_dig() ) { # 53, 64, 106 or 113 bits
     my $nv = Math::MPFR::Rmpfr_get_NV($val, 0);
-    Math::MPFR::Rmpfr_set_default_prec($prec);
-    return [$nv, scalar(reverse(unpack("h*", pack("F<", $nv))))];
+    my $ret = scalar(reverse(unpack("h*", pack("F<", $nv))));
+    return substr($ret, length($ret) - $_hex_dig{$bits}, $_hex_dig{$bits});
   }
 
   if($bits == 53) {
     my $nv = Math::MPFR::Rmpfr_get_d($val, 0);
-    Math::MPFR::Rmpfr_set_default_prec($prec);
-    return [$nv, scalar(reverse(unpack("h*", pack("d<", $nv))))];
+    return scalar(reverse(unpack("h*", pack("d<", $nv))));
   }
 
   if($bits == 64) {
-    my $nv = Math::MPFR::Rmpfr_get_ld($val, 0);
-    Math::MPFR::Rmpfr_set_default_prec($prec);
-    # cannot use "D" template with __float128. Need alternative code for that.
-    return [$nv, scalar(reverse(unpack("h*", pack("D<", $nv))))];
+    die "No _ld_bytes with this version ($Math::MPFR::VERSION) - need at least 3.26"
+      unless $Math::MPFR::VERSION > 3.25;
+    my @bytes = Math::MPFR::_ld_bytes($_[0], 64);
+    return join('', @bytes);
+  }
+
+  if($bits == 113) {
+    die "No _f128_bytes with this version ($Math::MPFR::VERSION) - need at least 3.26"
+      unless $Math::MPFR::VERSION > 3.25;
+    my @bytes = Math::MPFR::_f128_bytes($_[0], 113);
+    return join('', @bytes);
   }
 
   die "Unrecognized value for bits ($bits)";
@@ -174,13 +180,11 @@ sub nv_mpfr {
 
 
 sub _double_double {
-  my $prec = Math::MPFR::Rmpfr_get_default_prec();
-  Math::MPFR::Rmpfr_set_default_prec(2098);
-  my $val = Math::MPFR->new(shift);
+  my $val = Math::MPFR::Rmpfr_init2(2098);
+  Math::MPFR::Rmpfr_set_str($val, shift, 10, 0);
   my @val = _dd_obj($val);
-  Math::MPFR::Rmpfr_set_default_prec(2098);
-  return [$val[0], $val[1], scalar(reverse(unpack("h*", pack("d<", $val[0])))),
-                            scalar(reverse(unpack("h*", pack("d<", $val[1]))))];
+  return [scalar(reverse(unpack("h*", pack("d<", $val[0])))),
+          scalar(reverse(unpack("h*", pack("d<", $val[1]))))];
 }
 
 sub _dd_obj {
@@ -233,22 +237,44 @@ Math::NV - assign to NV using C's strtod/strtold/strtoflt128 (as appropriate)
     that the C standard library function strtofloat128($str) assigns.
     In list context, also returns the number of characters that were
     unparsed (ignored).
+    Generally you'll want $str to be a string - eg the string "2.3",
+    rather than the NV 2.3. Failure to adhere to this will result in
+    a warning - though you can disable this warning by setting
+    $Math::NV::no_warn to 1.
 
-   $arref = nv_mpfr($str, [$bits]); # $arref is a reference to a list.
+   $hex = nv_mpfr($str, [$bits]);
 
     If $bits is not specified, it will be set to the value returned by
     mant_dig().
     Valid values for $bits are 53 (double), 64 (long double), 106
-    (double-double) and 113 (__float128).
-    Uses the mpfr library to return the value represented by $str to
-    the precision represented by $bits.
-    For the double the list contains 4 elements - the most significant
-    double, the least siginificant double, hex dump of the most
-    significant double and hex dump of the least significant double.
-    For all other types, the list contains just 2 values - the actual
-    double/longdouble/__float128 and its hex dump.
-    The enticement to use this function is that mpfr is far more
-    reliable than C as regards correct setting of floating point values.
+    (double-double) and 113 (__float128). Other values will cause an
+    error.
+    Uses the mpfr library to return a hex dump of the value represented
+    by $str as a double or long double or double-double or __float128,
+    in accordance with the value of $bits.
+    For the double-double, the returned scalar is a reference to a list
+    that contains 2 elements - the hex representation of the most
+    significant double, and the hex representation of the least
+    siginificant double.
+    For all other types, the returned scalar contains the hex
+    representation of the given value.
+    The enticement to use this function in preference to nv() is
+    twofold:
+    1) mpfr reliably sets floating point values correctly (whereas C has
+       bugs);
+    2) nv_mpfr() can provide hex values for the four data types (double,
+       long double, double-double and __float128), whereas nv() returns
+       only the value for whatever $Config{nvtype} specifies.
+
+    Note, however, that for nv_mpfr() to return the hex form of the
+    __float128 type, the mpfr library (as used by Math::MPFR) needs to have
+    been built using the configure option --enable-float128, and this
+    configure option is only available with mpfr-3.2.0 or later.
+
+    As is also the case with nv(), you'll generally want $str to be a string.
+    For example, specify the string "2.3", rather than the NV 2.3.
+    Failure to adhere to this will result in a warning - though you can
+    disable this warning by setting $Math::NV::no_warn to 1.
 
    $nv_type = nv_type();
 
@@ -322,7 +348,7 @@ Math::NV - assign to NV using C's strtod/strtold/strtoflt128 (as appropriate)
 
    $Math::NV::no_mpfr
 
-    Set by default to 0 (if NV.pm can load Math::MPFR) or $@ (if NV.pm
+    Set by default to 0 (if NV.pm can load Math::MPFR) or to $@ (if NV.pm
     cannot load Math::MPFR).
     Can be overwritten by assigning directly to it.
 
