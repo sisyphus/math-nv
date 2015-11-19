@@ -1,4 +1,5 @@
 use ExtUtils::MakeMaker;
+use 5.010;
 
 my $defines = $Config::Config{nvtype} eq 'long double'
                 ? '-DNV_IS_LONG_DOUBLE'
