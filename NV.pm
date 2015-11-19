@@ -30,19 +30,15 @@ else   {$Math::NV_no_mpfr = 0 }
 
 $Math::NV::no_warn = 0; # set to true to disable warning about non-string argument
 
+# %_itsa is utilised in the formulation of the diagnostic message
+# when it's detected that the provided arg is not a string.
+
 my %_itsa = (
   1 => 'UV',
   2 => 'IV',
   3 => 'NV',
   4 => 'string',
   0 => 'unknown',
-);
-
-my %_hex_dig = (
-  53 => 16,
-  64 => 20,
- 106 => 32,
- 113 => 32,
 );
 
 sub dl_load_flags {0} # Prevent DynaLoader from complaining and croaking
@@ -153,7 +149,13 @@ sub nv_mpfr {
   if($bits == mant_dig() ) { # 53, 64, 106 or 113 bits
     my $nv = Math::MPFR::Rmpfr_get_NV($val, 0);
     my $ret = scalar(reverse(unpack("h*", pack("F<", $nv))));
-    return substr($ret, length($ret) - $_hex_dig{$bits}, $_hex_dig{$bits});
+
+    # pack/unpack like to deliver irrelevant (ie ignored) leading bytes
+    # if NV is 80-bit long double
+    if($bits == 64) {
+      return substr($ret, length($ret) - 20, 20);
+    }
+    return $ret;
   }
 
   if($bits == 53) {
@@ -201,30 +203,45 @@ __END__
 
 =head1 NAME
 
-Math::NV - assign to NV using C's strtod/strtold/strtoflt128 (as appropriate)
+Math::NV - compare the NV values that perl assigns with C and MPFR
 
 =head1 DESCRIPTION
 
    use Math::NV qw(:all);
-   my $nv = nv('1e-298'); # ie the number 10 ** -298
-   # or, in list context:
-   my($nv, $iv) = nv('1e-298');
+   $bool = is_eq('1e-298');
+   $bool = is_eq_mpfr('1e-298'); # iff Math::MPFR is available
 
-   The nv() function assigns the specified value of its argument using
-   the C function strtod(), strtold(), or strtoflt128() - whichever
-   is appropriate for your perl's configuration. (The value assigned
-   by the C function may differ to the one that perl assigns.)
-   $iv is set to the number of characters in the input string that
-   were unparsed.
+    If $bool is true, this suggests there is quite possibly no bug
+    in the assignment of the specified value.
+    If $bool is false, this implies that at least one of perl and C
+    (wrt is_eq) or mpfr (wrt is_eq_mpfr) suffer a bug in assigning
+    the specified value.
+    IME, it's perl that's usually wrong - though I've struck buggy
+    assignments with C.
+    I've not yet found a case where mpfr assigns incorrectly - and
+    I firmly expect that I won't ever find such a bug with mpfr.
 
-   NOTE:
-    It's not guaranteed that nv($nv) and nv("$nv") will return the
-    same value. For example, on many of my 64-bit MS Win
-    builds of perl, a print() of nv('1e-298') will output 1e-298,
-    whereas a print() of nv(1e-298) outputs 9.99999999999999e-299.
+    All mpfr values are assigned with a rounding mode of "to nearest,
+    ties to even". (This could be made configurable if requested.)
 
 
 =head1 FUNCTIONS
+
+   $bool = is_eq($str);
+
+     Returns true if the value perl assigns to an NV from the string
+     $str is equal to the value C assigns to the C type specified by
+     $Config{nvtype} from the same string.
+     Else returns false - which implies that either perl or C is buggy
+     in its assignment of that value. (Or they could both be buggy.)
+
+   $bool = is_eq_mpfr($str);
+
+     Returns true if the value perl assigns from the string $str is
+     equal to the value mpfr assigns from the same string.
+     Else returns false - which implies that either perl or mpfr is
+     buggy in its assignment of that value. (Or they could both be
+     buggy - though it's very unlikely that mpfr suffers such a bug.)
 
    $nv = nv($str);        # scalar context
    ($nv, $iv) = nv($str); # list context
@@ -245,33 +262,35 @@ Math::NV - assign to NV using C's strtod/strtold/strtoflt128 (as appropriate)
    $hex = nv_mpfr($str, [$bits]);
 
     If $bits is not specified, it will be set to the value returned by
-    mant_dig().
+    mant_dig() - which is the appropriate value for the current perl
+    that is being run.
     Valid values for $bits are 53 (double), 64 (long double), 106
     (double-double) and 113 (__float128). Other values will cause an
     error.
-    Uses the mpfr library to return a hex dump of the value represented
-    by $str as a double or long double or double-double or __float128,
-    in accordance with the value of $bits.
+    Uses the mpfr library to assign the value represented by $str as a
+    double or long double or double-double or __float128 (as determined
+    by the value of $bits). It then returns a hex dump of the bytes that
+    make up that C data type.
     For the double-double, the returned scalar is a reference to a list
-    that contains 2 elements - the hex representation of the most
-    significant double, and the hex representation of the least
-    siginificant double.
-    For all other types, the returned scalar contains the hex
-    representation of the given value.
+    that contains 2 elements - the hex dump of the most significant
+    double, and the hex dump of the least siginificant double.
+    For all other types, the returned scalar contains the hex dump
+    of the given value.
     The enticement to use this function in preference to nv() is
     twofold:
-    1) mpfr reliably sets floating point values correctly (whereas C has
-       bugs);
-    2) nv_mpfr() can provide hex values for the four data types (double,
-       long double, double-double and __float128), whereas nv() returns
-       only the value for whatever $Config{nvtype} specifies.
+    1) mpfr reliably sets floating point values correctly (whereas C is
+       more likely to suffer bugs);
+    2) nv_mpfr() can provide hex dumps for any of the four data types
+       (double, long double, double-double and __float128), whereas nv()
+       returns only the value for whichever data type is specified by
+       $Config{nvtype}.
 
     Note, however, that for nv_mpfr() to return the hex form of the
     __float128 type, the mpfr library (as used by Math::MPFR) needs to have
     been built using the configure option --enable-float128, and this
     configure option is only available with mpfr-3.2.0 or later.
 
-    As is also the case with nv(), you'll generally want $str to be a string.
+    As is the case with nv(), you'll generally want $str to be a string.
     For example, specify the string "2.3", rather than the NV 2.3.
     Failure to adhere to this will result in a warning - though you can
     disable this warning by setting $Math::NV::no_warn to 1.
@@ -282,18 +301,6 @@ Math::NV - assign to NV using C's strtod/strtold/strtoflt128 (as appropriate)
     the way perl has been configured.
     The expectation is that it returns the same as $Config{nvtype}.
     (Please file a bug report if you find otherwise.)
-
-   $bool = is_eq($str);
-
-     Returns true if the value perl assigns from the string $str is
-     equal to the value C assigns from the same string.
-     Else returns false.
-
-   $bool = is_eq_mpfr($str);
-
-     Returns true if the value perl assigns from the string $str is
-     equal to the value mpfr assigns from the same string.
-     Else returns false.
 
    $digits = mant_dig();
 
@@ -348,9 +355,10 @@ Math::NV - assign to NV using C's strtod/strtold/strtoflt128 (as appropriate)
 
    $Math::NV::no_mpfr
 
-    Set by default to 0 (if NV.pm can load Math::MPFR) or to $@ (if NV.pm
-    cannot load Math::MPFR).
-    Can be overwritten by assigning directly to it.
+    At startup, NV.pm runs "eval{require Math::MPFR;};".
+    $Math::NV::no_mpfr is automatically set to 0 (if Math::MPFR loads)
+    or to $@ (if Math::MPFR fails to load).
+    Can subsequently be overwritten by assigning directly to it.
 
    $Math::NV::no_warn
 
