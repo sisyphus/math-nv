@@ -190,8 +190,8 @@ sub nv_mpfr {
   }
 
   if($bits == 64) {
-    die "No _ld_bytes with this version ($Math::MPFR::VERSION) - need at least 3.26"
-      unless $Math::MPFR::VERSION > 3.25;
+    die "No _ld_bytes with this version ($Math::MPFR::VERSION) - need at least 3.27"
+      unless $Math::MPFR::VERSION > '3.26';
     my @bytes = Math::MPFR::_ld_bytes($_[0], 64);
     return join('', @bytes);
   }
