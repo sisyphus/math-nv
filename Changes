@@ -1,4 +1,5 @@
 Revision history for Perl module Math::NV
+ 1.01
 
  1.0
     - Add nv_mpfr() and is_eq_mpfr() functions. (Also added $Math::NV::no_mpfr.)
