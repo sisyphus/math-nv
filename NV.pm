@@ -239,13 +239,14 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
 
     If $bool is true, this suggests there is quite possibly no bug
     in the assignment of the specified value.
-    If $bool is false, this implies that at least one of perl and C
+    If $bool is false, this implies that at least one of perl && C
     (wrt is_eq) or mpfr (wrt is_eq_mpfr) suffer a bug in assigning
     the specified value.
     IME, it's perl that's usually wrong - though I've struck buggy
     assignments with C.
     I've not yet found a case where mpfr assigns incorrectly - and
-    I firmly expect that I won't ever find such a bug with mpfr.
+    I firmly expect that I won't ever find such a bug with that
+    library.
 
     All mpfr values are assigned with a rounding mode of "to nearest,
     ties to even". (This could be made configurable if requested.)
@@ -297,6 +298,13 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
     double or long double or double-double or __float128 (as determined
     by the value of $bits). It then returns a hex dump of the bytes that
     make up that C data type.
+
+    For example, nv_mpfr('1e+127', 53) returns 5a4d8ba7f519c84f.
+    This is the same as should be returned by
+    scalar(reverse(unpack("h*", pack("d<", 1e+127))))
+    except that, on my Windows machine, it returns 5a4d8ba7f519c851 .
+    (Yes, perl's assignment of that value is out by 2 ULP's.)
+
     For the double-double, the returned scalar is a reference to a list
     that contains 2 elements - the hex dump of the most significant
     double, and the hex dump of the least siginificant double.
