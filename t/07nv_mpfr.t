@@ -98,17 +98,35 @@ else {
     print "ok 9\nok 10\n";
   }
   else {
-    $val = nv_mpfr('1e+127', 64);
+    eval {$val = nv_mpfr('1e+127', 64);};
 
-    if(lc($val) eq "41a4ec5d3fa8ce427b00") {print "ok 9\n"}
+    if($Math::MPFR::VERSION < '3.27') {
+      my $mess = $@;
+      if($mess =~ /^No _ld_bytes with this version/) {print "ok 9\n"}
+      else {
+        warn "\n\$\@: $mess\n";
+        print "not ok 9\n";
+      }
+    }
     else {
-      warn "expected \"41a4ec5d3fa8ce427b00\", got ", lc($val), "\n";
-      print "not ok 9\n";
+      if(lc($val) eq "41a4ec5d3fa8ce427b00") {print "ok 9\n"}
+      else {
+        warn "expected \"41a4ec5d3fa8ce427b00\", got ", lc($val), "\n";
+        print "not ok 9\n";
+      }
     }
 
     eval {$val = nv_mpfr('1e+127', 113);};
 
-    if($@) {
+    if($Math::MPFR::VERSION < '3.27') {
+      my $mess = $@;
+      if($mess =~ /^No _f128_bytes with this version/) {print "ok 9\n"}
+      else {
+        warn "\n\$\@: $mess\n";
+        print "not ok 9\n";
+      }
+    }
+    elsif($@) {
       my $mess = $@;
       if($mess =~ /^__float128 support not built into this Math::MPFR/) {print "ok 10\n"}
       else {
