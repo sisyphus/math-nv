@@ -120,10 +120,10 @@ else {
 
     if($Math::MPFR::VERSION < '3.27') {
       my $mess = $@;
-      if($mess =~ /^No _f128_bytes with this version/) {print "ok 9\n"}
+      if($mess =~ /^No _f128_bytes with this version/) {print "ok 10\n"}
       else {
         warn "\n\$\@: $mess\n";
-        print "not ok 9\n";
+        print "not ok 10\n";
       }
     }
     elsif($@) {
