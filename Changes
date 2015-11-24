@@ -1,4 +1,6 @@
 Revision history for Perl module Math::NV
+ 1.02
+
  1.01
     - Correct tests in t/07nv_mpfr.t.
 
