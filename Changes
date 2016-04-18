@@ -1,5 +1,6 @@
 Revision history for Perl module Math::NV
  1.02
+    - Update nv_mpfr() to accommodate IEEE 754 quad long double type.
 
  1.01
     - Correct tests in t/07nv_mpfr.t.
