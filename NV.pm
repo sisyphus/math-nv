@@ -99,7 +99,7 @@ sub is_eq {
     $first = substr($first, length($first) - 20, 20);
     my $second = scalar(reverse(unpack("h*", pack("F<", $check))));
     $second = substr($second, length($second) - 20, 20);
-    warn "In is_eq:\n$first vs $second\n\n";
+    warn "In is_eq:\nperl: $first vs C: $second\n\n";
   }
   else {
     warn "In is_eq:\n",
@@ -138,7 +138,7 @@ sub is_eq_mpfr {
       $first = substr($first, length($first) - 20, 20);
       my $second = scalar(reverse(unpack("h*", pack("F<", Math::MPFR::Rmpfr_get_NV($fr, 0)))));
       $second = substr($second, length($second) - 20, 20);
-      warn "In is_eq_mpfr:\n$first vs $second\n\n";
+      warn "In is_eq_mpfr:\nperl: $first vs mpfr: $second\n\n";
     }
     else {
       warn "In is_eq_mpfr:\n",
