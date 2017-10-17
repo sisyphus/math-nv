@@ -102,8 +102,8 @@ sub is_eq {
     warn "In is_eq:\nperl: $first vs C: $second\n\n";
   }
   else {
-    warn "In is_eq:\n",
-      scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs ",
+    warn "In is_eq:\nperl: ",
+      scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs C: ",
       scalar(reverse(unpack("h*", pack("F<", $check)))), "\n\n";
   }
 
@@ -141,8 +141,8 @@ sub is_eq_mpfr {
       warn "In is_eq_mpfr:\nperl: $first vs mpfr: $second\n\n";
     }
     else {
-      warn "In is_eq_mpfr:\n",
-        scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs ",
+      warn "In is_eq_mpfr:\nperl: ",
+        scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs mpfr: ",
         scalar(reverse(unpack("h*", pack("F<", Math::MPFR::Rmpfr_get_NV($fr, 0))))), "\n\n";
     }
   }
