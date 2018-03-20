@@ -2,6 +2,7 @@ MANIFEST
 README
 Changes
 NV.pm
+NV.pod
 NV.xs
 Makefile.PL
 t/01load.t
