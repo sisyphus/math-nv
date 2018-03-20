@@ -1,5 +1,6 @@
 Revision history for Perl module Math::NV
  1.03
+    - Move POD to separate file (NV.pod)
 
  1.02
     - Update nv_mpfr() to accommodate IEEE 754 quad long double type.
