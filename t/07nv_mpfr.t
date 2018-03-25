@@ -109,7 +109,7 @@ else {
       }
     }
     else {
-      if(lc($val) eq "41a4ec5d3fa8ce427b00") {print "ok 9\n"}
+      if($val =~ /^(0+)?41a4ec5d3fa8ce427b00$/i) {print "ok 9\n"}
       else {
         warn "expected \"41a4ec5d3fa8ce427b00\", got ", lc($val), "\n";
         print "not ok 9\n";
