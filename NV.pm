@@ -28,7 +28,19 @@ eval {require Math::MPFR;};
 if($@) {$Math::NV::no_mpfr = $@}
 else   {$Math::NV_no_mpfr = 0 }
 
-$Math::NV::no_warn = 0; # set to true to disable warning about non-string argument
+if(!$Math::NV_no_mpfr) { # Math::MPFR is available
+  $Math::NV::DBL_MIN = Math::MPFR->new(2);
+  Math::MPFR::Rmpfr_div_2ui($Math::NV::DBL_MIN, $Math::NV::DBL_MIN, 1023, 0);
+
+  $Math::NV::LDBL_MIN = Math::MPFR->new(2);
+  Math::MPFR::Rmpfr_div_2ui($Math::NV::LDBL_MIN, $Math::NV::LDBL_MIN, 16383, 0);
+
+  $Math::NV::FLT128_MIN =  $Math::NV::LDBL_MIN;
+}
+
+$Math::NV::no_warn = 0; # set to 1 to disable warning about non-string argument
+                        # set to 2 to disable output of the 2 non-matching values
+                        # set to 3 to disable both of the above
 
 # %_itsa is utilised in the formulation of the diagnostic message
 # when it's detected that the provided arg is not a string.
@@ -83,7 +95,7 @@ sub bin2val {
 }
 
 sub is_eq {
-  unless($Math::NV::no_warn) {
+  unless($Math::NV::no_warn & 1) {
     my $itsa = $_[0];
     $itsa = _itsa($itsa); # make sure that $_[0] has POK flag set && all numeric flags unset
     warn "Argument given to is_eq() is $_itsa{$itsa}, not a string - probably not what you want"
@@ -92,21 +104,22 @@ sub is_eq {
   my $nv = $_[0];
   my $check = nv($_[0]);
   return 1 if $nv == $check;
-  if(mant_dig() == 64) {
-    # pack/unpack like to deliver irrelevant (ie ignored) leading bytes
-    # if NV is 80-bit long double
-    my $first = scalar(reverse(unpack("h*", pack("F<", $nv))));
-    $first = substr($first, length($first) - 20, 20);
-    my $second = scalar(reverse(unpack("h*", pack("F<", $check))));
-    $second = substr($second, length($second) - 20, 20);
-    warn "In is_eq:\nperl: $first vs C: $second\n\n";
+  unless($Math::NV::no_warn & 2) {
+    if(mant_dig() == 64) {
+      # pack/unpack like to deliver irrelevant (ie ignored) leading bytes
+      # if NV is 80-bit long double
+      my $first = scalar(reverse(unpack("h*", pack("F<", $nv))));
+      $first = substr($first, length($first) - 20, 20);
+      my $second = scalar(reverse(unpack("h*", pack("F<", $check))));
+      $second = substr($second, length($second) - 20, 20);
+      warn "In is_eq:\nperl: $first vs C: $second\n\n";
+    }
+    else {
+      warn "In is_eq:\nperl: ",
+        scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs C: ",
+        scalar(reverse(unpack("h*", pack("F<", $check)))), "\n\n";
+    }
   }
-  else {
-    warn "In is_eq:\nperl: ",
-      scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs C: ",
-      scalar(reverse(unpack("h*", pack("F<", $check)))), "\n\n";
-  }
-
   return 0;
 }
 
@@ -114,23 +127,27 @@ sub is_eq_mpfr {
 
   if($Math::NV::no_mpfr) {die "In is_eq_mpfr(): $Math::NV::no_mpfr"}
 
-  unless($Math::NV::no_warn) {
+  unless($Math::NV::no_warn & 1) {
     my $itsa = $_[0];
     $itsa = _itsa($itsa); # make sure that $_[0] has POK flag set && all numeric flags unset
     warn "Argument given to is_eq() is $_itsa{$itsa}, not a string - probably not what you want"
     if $itsa != 4;
   }
 
-  my $ret = 0;
   my $nv = $_[0];
   my $bits = mant_dig();
-  $bits = 2098 if $bits == 106; # double double
+  $bits = 2098 if $bits == 106;
 
   my $fr = Math::MPFR::Rmpfr_init2($bits);
-  Math::MPFR::Rmpfr_set_str($fr, $nv, 10, 0);
+  my $inex = Math::MPFR::Rmpfr_strtofr($fr, $nv, 0, 0);
 
-  if($nv == Math::MPFR::Rmpfr_get_NV($fr, 0)) {$ret = 1}
-  else {
+  _subnormalize($inex, $fr, $bits);
+
+  if($nv == Math::MPFR::Rmpfr_get_NV($fr, 0)) {return 1}
+
+  # Values don't match
+
+  unless($Math::NV::no_warn & 2) {
     if($bits == 64) {
       # pack/unpack like to deliver irrelevant (ie ignored) leading bytes
       # if NV is 80-bit long double
@@ -146,8 +163,7 @@ sub is_eq_mpfr {
         scalar(reverse(unpack("h*", pack("F<", Math::MPFR::Rmpfr_get_NV($fr, 0))))), "\n\n";
     }
   }
-
-  return $ret;
+  return 0;
 
 }
 
@@ -155,7 +171,7 @@ sub nv_mpfr {
 
   if($Math::NV::no_mpfr) {die "In nv_mpfr(): $Math::NV::no_mpfr"}
 
-  unless($Math::NV::no_warn) {
+  unless($Math::NV::no_warn & 1) {
     my $itsa = $_[0];
     $itsa = _itsa($itsa);  # make sure that $_[0] has POK flag set && all numeric flags unset
     warn "Argument given to is_eq() is $_itsa{$itsa}, not a string - probably not what you want"
@@ -169,21 +185,22 @@ sub nv_mpfr {
   return _double_double($_[0]) if $bits == 106; # doubledouble
 
   my $val = Math::MPFR::Rmpfr_init2($bits);
-  Math::MPFR::Rmpfr_set_str($val, $_[0], 10, 0);
+  my $inex = Math::MPFR::Rmpfr_strtofr($val, $_[0], 0, 0);
 
-  if($bits == mant_dig() ) { # 53, 64, 106 or 113 bits
+  if($bits == mant_dig() ) { # 53, 64 or 113 bits
+
+    _subnormalize($inex, $val, $bits); # convert $val to correct subnormal form if necessary
+
     my $nv = Math::MPFR::Rmpfr_get_NV($val, 0);
     my $ret = scalar(reverse(unpack("h*", pack("F<", $nv))));
 
-    # pack/unpack like to deliver irrelevant (ie ignored) leading bytes
-    # if NV is 80-bit long double
-    if($bits == 64) {
-      return substr($ret, length($ret) - 20, 20);
-    }
     return $ret;
   }
 
   if($bits == 53) {
+
+    _subnormalize($inex, $val, 53); # convert $val to correct subnormal form if necessary
+
     my $nv = Math::MPFR::Rmpfr_get_d($val, 0);
     return scalar(reverse(unpack("h*", pack("d<", $nv))));
   }
@@ -191,6 +208,7 @@ sub nv_mpfr {
   if($bits == 64) {
     die "No _ld_bytes with this version ($Math::MPFR::VERSION) - need at least 3.27"
       unless $Math::MPFR::VERSION > '3.26';
+
     my @bytes = Math::MPFR::_ld_bytes($_[0], 64);
     return join('', @bytes);
   }
@@ -230,6 +248,59 @@ sub _dd_obj {
   return ($msd, Math::MPFR::Rmpfr_get_d($obj, 0));
 }
 
+# use _subnormalize instead
+sub get_subnormal {
+  my($str, $prec) = (shift, shift);
+  my $val = Math::MPFR::Rmpfr_init2($prec);
+  Math::MPFR::Rmpfr_set_str($val, $str, 0, 0);
+  return $val;
+}
+
+sub get_relevant_prec {
+  my $val = shift;
+  my $bits = Math::MPFR::Rmpfr_get_prec($val);
+  die "Unrecognized precision handed to _get_relevant_prec()"
+    unless ($bits == 53 || $bits == 64 || $bits == 113 || $bits == 106 || $bits == 2098);
+  my $init = $bits == 53 ? 1022 + 53
+                         : $bits == 64 ? 16382 + 64
+                                       : ($bits == 106 || $bits == 2098) ? 1022 + 53
+                                                                       : 16382 + 113;
+  Math::MPFR::Rmpfr_abs($val, $val, 0); # MPFR_RNDN
+  Math::MPFR::Rmpfr_log2($val, $val, 3); # MPFR_RNDD
+  Math::MPFR::Rmpfr_floor($val, $val);
+  return $init + Math::MPFR::Rmpfr_get_si($val, 0);
+}
+
+sub _subnormalize {
+
+  # MPFR expresses values as beginning with "0x0." instead of "0x1."
+  # 0x0.1p-1073  is smallest non-zero positive (53 bit) value.
+  # 0x0.1p-16444 is smallest non-zero positive (64 bit) value.
+  # 0x0.1p-16493 is smallest non-zero positive (113 bit) value.
+  # 0x0.ffffffffffffffp+1024 is DBL_MAX
+  # 0x0.ffffffffffffffffp+16384 is LDBL_MAX
+  # 0x0.ffff........ffffp+16384 is FLT128_MAX
+  my $inex = shift;
+  my $prec = pop;
+
+  my $emin = Math::MPFR::Rmpfr_get_emin();
+  my $emax = Math::MPFR::Rmpfr_get_emax();
+
+  my $sub_emin = $prec == 53 ? -1073
+                             : mant_dig() == 64 ? -16444
+                                                : -16493; # mant_dig() == 113
+
+  my $sub_emax = $prec == 53 ? 1024
+                             : 16384;
+
+  Math::MPFR::Rmpfr_set_emin($sub_emin);
+  Math::MPFR::Rmpfr_set_emax($sub_emax);
+
+  Math::MPFR::Rmpfr_subnormalize($_[0], $inex, 0);
+
+  Math::MPFR::Rmpfr_set_emin($emin);
+  Math::MPFR::Rmpfr_set_emax($emax);
+}
 
 1;
 
