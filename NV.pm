@@ -16,11 +16,13 @@ DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
 @Math::NV::EXPORT_OK = qw(
     nv nv_type mant_dig ld2binary ld_str2binary is_eq
     bin2val Cprintf Csprintf nv_mpfr is_eq_mpfr
+    set_C set_mpfr
     );
 
 %Math::NV::EXPORT_TAGS = (all => [qw(
     nv nv_type mant_dig ld2binary ld_str2binary is_eq
     bin2val Cprintf Csprintf nv_mpfr is_eq_mpfr
+    set_C set_mpfr
     )]);
 
 eval {require Math::MPFR;};
@@ -229,6 +231,44 @@ sub nv_mpfr {
   }
 
   die "Unrecognized value for bits ($bits)";
+}
+
+sub set_mpfr {
+
+  if($Math::NV::no_mpfr) {die "In set_mpfr(): $Math::NV::no_mpfr"}
+
+  unless($Math::NV::no_warn & 1) {
+    my $itsa = $_[0];
+    $itsa = _itsa($itsa);  # make sure that $_[0] has POK flag set && all numeric flags unset
+    warn "Argument given to is_eq() is $_itsa{$itsa}, not a string - probably not what you want"
+    if $itsa != 4;
+  }
+
+  my $bits = mant_dig();
+  $bits = 2098 if $bits == 106;
+
+  my $val = Math::MPFR::Rmpfr_init2($bits);
+  my $inex = Math::MPFR::Rmpfr_strtofr($val, $_[0], 0, 0);
+
+  if($bits == 2098) {
+    return Rmpfr_get_ld($val, 0);
+  }
+
+  die "In set_mpfr: unrecognized nv precision of $bits bits"
+    unless($bits == 53 || $bits == 64 || $bits == 113);
+  _subnormalize($inex, $val, $bits);
+  return Math::MPFR::Rmpfr_get_NV($val, 0);
+
+}
+
+sub set_C {
+  unless($Math::NV::no_warn & 1) {
+    my $itsa = $_[0];
+    $itsa = _itsa($itsa);  # make sure that $_[0] has POK flag set && all numeric flags unset
+    warn "Argument given to is_eq() is $_itsa{$itsa}, not a string - probably not what you want"
+    if $itsa != 4;
+  }
+  return _set_C($_[0]);
 }
 
 
