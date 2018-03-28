@@ -59,7 +59,21 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
     a warning - though you can disable this warning by setting
     $Math::NV::no_warn to 1.
 
-   $hex = nv_mpfr($str, [$bits]);
+   $nv = set_C($str);
+    Uses Perl_strtod to assign the value specified by $str to the NV
+    $nv. Expect this value to be the same as that returned by nv().
+    If perl was built without Perl_strtod, a warning to this effect is
+    emitted, and undef is returned.
+    Note that Perl_strtod wraps the standard C library's strtod() or
+    strtold() or strtoflt128() - depending upon which of those three
+    is correct for your perl's floating point type.
+
+   $nv = set_mpfr($str);
+    Uses Math::MPFR to assign the value specified by $str to the NV $nv.
+    Rounding is to nearest, ties to even.
+
+   $hex = nv_mpfr($str, [$bits]); # Returns a hex dump of the NV,
+                                  # not the actual NV.
 
     If $bits is not specified, it will be set to the value returned by
     mant_dig() - which is the appropriate value for the current perl
@@ -90,7 +104,7 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
     double, and the hex dump of the least siginificant double.
     For all other types, the returned scalar contains the hex dump
     of the given value.
-    The enticement to use this function in preference to nv() is
+    The enticement to use this function in preference to nv()/set_C is
     twofold:
     1) mpfr reliably sets floating point values correctly (whereas C is
        more likely to suffer bugs);
@@ -186,7 +200,7 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
 
    This program is free software; you may redistribute it and/or modify
    it under the same terms as Perl itself.
-   Copyright 2013-16 Sisyphus
+   Copyright 2013-16, 2018 Sisyphus
 
 
 =head1 AUTHOR
