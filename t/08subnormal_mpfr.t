@@ -48,11 +48,22 @@ for my $count(1 .. 400000) {
 
   my $nv = Math::MPFR::Rmpfr_get_NV($check, 0);
 
+  if($nv != set_mpfr($str)) {
+    warn "\n$nv != ", set_mpfr($str), "\n";
+    $ok = 0;
+    last;
+  }
+
   my $out1 = scalar(reverse(unpack("h*", pack("F<", $nv))));
-  #if(mant_dig() == 64) {
-  #  $out1 = substr($out1, length($out1) - 20, 20);
-  #}
-  my $out2 = nv_mpfr($str);
+
+  my $out2;
+  my $out = nv_mpfr($str);
+
+  if(mant_dig() == 106) { # If NV is a double-double
+    my @t = @$out;
+    $out2 = $t[0] . $t[1];
+  }
+  else {$out2 = $out}
 
   unless($out1 eq $out2) {
     warn "For $str:\n $out1 ne $out2\n";
@@ -81,8 +92,15 @@ for my $count(1 .. 400000) {
 
   my $str_copy = $str;
   my $perl_nv = $str_copy + 0;
+  my $out;
 
-  my $out = unpack("F<", pack "h*", scalar reverse nv_mpfr($str));
+  if(mant_dig() == 106) { # If NV is a double-double
+    my $ret = nv_mpfr($str);
+    my @t = @$ret;
+    my $s = $t[0] . $t[1];
+    $out = unpack("F<", pack "h*", scalar reverse $s);
+  }
+  else { $out = unpack("F<", pack "h*", scalar reverse nv_mpfr($str));}
 
   if($out == $perl_nv && !is_eq_mpfr($str)) {
     warn "For $str:\nperl and nv_mpfr() agree, but is_eq_mpfr($str) returns false\n";
@@ -179,6 +197,7 @@ else {
 }
 
 
+
 if($Math::MPFR::VERSION < 4.02) {
   warn "\nSkipping remaining tests.\nThey require Math-MPFR-4.02 and $Math::MPFR::VERSION is installed\n";
   print "ok $_\n" for 5..$t;
@@ -215,6 +234,8 @@ else {
   warn "\n skipping test 5:\n\$\@:\n$@\n";
   print "ok 5\n";
 }
+
+
 
 $ok = 1;
 
