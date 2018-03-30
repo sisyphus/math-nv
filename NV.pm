@@ -44,6 +44,8 @@ $Math::NV::no_warn = 0; # set to 1 to disable warning about non-string argument
                         # set to 2 to disable output of the 2 non-matching values
                         # set to 3 to disable both of the above
 
+$Math::NV::mpfr_strtofr_bug = Math::MPFR::MPFR_VERSION() > 196869 ? 0 : 1;
+
 # %_itsa is utilised in the formulation of the diagnostic message
 # when it's detected that the provided arg is not a string.
 
@@ -143,7 +145,16 @@ sub is_eq_mpfr {
   my $fr = Math::MPFR::Rmpfr_init2($bits);
   my $inex = Math::MPFR::Rmpfr_strtofr($fr, $nv, 0, 0);
 
-  _subnormalize($inex, $fr, $bits);
+  my $fr_bits = get_relevant_prec($fr); # check for subnormality
+
+  if($fr_bits) { # convert $fr to correct subnormal form
+    if($Math::NV::mpfr_strtofr_bug) {
+      Math::MPFR::Rmpfr_set($fr, get_subnormal($_[0], $fr_bits), 0);
+    }
+    else {
+      _subnormalize($inex, $fr, $bits);
+    }
+  }
 
   if($nv == Math::MPFR::Rmpfr_get_NV($fr, 0)) {return 1}
 
@@ -191,7 +202,16 @@ sub nv_mpfr {
 
   if($bits == mant_dig() ) { # 53, 64 or 113 bits
 
-    _subnormalize($inex, $val, $bits); # convert $val to correct subnormal form if necessary
+    my $val_bits = get_relevant_prec($val); # check for subnormality.
+
+    if($val_bits) { # convert $val to correct subnormal form
+      if($Math::NV::mpfr_strtofr_bug) {
+        Math::MPFR::Rmpfr_set($val, get_subnormal($_[0], $val_bits), 0);
+      }
+      else {
+        _subnormalize($inex, $val, $bits);
+      }
+    }
 
     my $nv = Math::MPFR::Rmpfr_get_NV($val, 0);
     my $ret = scalar(reverse(unpack("h*", pack("F<", $nv))));
@@ -201,7 +221,16 @@ sub nv_mpfr {
 
   if($bits == 53) {
 
-    _subnormalize($inex, $val, 53); # convert $val to correct subnormal form if necessary
+    my $val_bits = get_relevant_prec($val); # check for subnormality.
+
+    if($val_bits) { # convert $val to correct subnormal form
+      if($Math::NV::mpfr_strtofr_bug) {
+        Math::MPFR::Rmpfr_set($val, get_subnormal($_[0], $val_bits), 0);
+      }
+      else {
+        _subnormalize($inex, $val, $bits);
+      }
+    }
 
     my $nv = Math::MPFR::Rmpfr_get_d($val, 0);
     return scalar(reverse(unpack("h*", pack("d<", $nv))));
@@ -251,12 +280,24 @@ sub set_mpfr {
   my $inex = Math::MPFR::Rmpfr_strtofr($val, $_[0], 0, 0);
 
   if($bits == 2098) {
-    return Rmpfr_get_ld($val, 0);
+    return Math::MPFR::Rmpfr_get_ld($val, 0);
   }
 
   die "In set_mpfr: unrecognized nv precision of $bits bits"
     unless($bits == 53 || $bits == 64 || $bits == 113);
-  _subnormalize($inex, $val, $bits);
+
+    my $val_bits = get_relevant_prec($val); # check for subnormality.
+
+    if($val_bits) { # convert $val to correct subnormal form
+      if($Math::NV::mpfr_strtofr_bug) {
+        Math::MPFR::Rmpfr_set($val, get_subnormal($_[0], $val_bits), 0);
+      }
+      else {
+        _subnormalize($inex, $val, $bits);
+      }
+    }
+
+#  _subnormalize($inex, $val, $bits);
   return Math::MPFR::Rmpfr_get_NV($val, 0);
 
 }
@@ -288,7 +329,7 @@ sub _dd_obj {
   return ($msd, Math::MPFR::Rmpfr_get_d($obj, 0));
 }
 
-# use _subnormalize instead
+# use _subnormalize instead if MPFR_VERSION > 196869
 sub get_subnormal {
   my($str, $prec) = (shift, shift);
   my $val = Math::MPFR::Rmpfr_init2($prec);
@@ -299,18 +340,25 @@ sub get_subnormal {
 sub get_relevant_prec {
   my $val = shift;
   my $bits = Math::MPFR::Rmpfr_get_prec($val);
-  die "Unrecognized precision handed to _get_relevant_prec()"
+  die "Unrecognized precision ($bits) handed to get_relevant_prec()"
     unless ($bits == 53 || $bits == 64 || $bits == 113 || $bits == 106 || $bits == 2098);
-  my $init = $bits == 53 ? 1022 + 53
-                         : $bits == 64 ? 16382 + 64
-                                       : ($bits == 106 || $bits == 2098) ? 1022 + 53
-                                                                       : 16382 + 113;
-  Math::MPFR::Rmpfr_abs($val, $val, 0); # MPFR_RNDN
-  Math::MPFR::Rmpfr_log2($val, $val, 3); # MPFR_RNDD
-  Math::MPFR::Rmpfr_floor($val, $val);
-  return $init + Math::MPFR::Rmpfr_get_si($val, 0);
+#  my $init = $bits == 53 ? 1022 + 53
+#                         : $bits == 64 ? 16382 + 64
+#                                       : ($bits == 106 || $bits == 2098) ? 1022 + 53
+#                                                                       : 16382 + 113;
+
+  my $init = $bits == 53 || $bits == 106 || $bits == 2098 ? 1074
+                                                           : $bits == 64 ? 16445
+                                                                         : 16494;
+
+  my $ret = $init + Math::MPFR::Rmpfr_get_exp($val);
+
+  return $ret if($ret < $bits && $ret > 0);
+
+  return 0;
 }
 
+# use get_subnormal instead if MPFR_VERSION <= 196869
 sub _subnormalize {
 
   # MPFR expresses values as beginning with "0x0." instead of "0x1."
