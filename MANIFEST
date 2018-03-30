@@ -13,7 +13,7 @@ t/05ld2binary.t
 t/06is_eq.t
 t/07nv_mpfr.t
 t/08subnormal_mpfr.t
-t/o9subnormal_mpfr_alt.t
+t/09subnormal_mpfr_alt.t
 t/11sprintf.t
 t/pod.t
 
