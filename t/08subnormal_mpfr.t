@@ -18,7 +18,7 @@ use warnings;
 use Math::NV qw(:all);
 use Config;
 
-my $t = 7;
+my $t = 8;
 
 print "1..$t\n";
 
@@ -38,7 +38,7 @@ my $check = Math::MPFR::Rmpfr_init2(300);
 
 $exponent = $Config{nvtype} eq 'double' ? '-308' : '-4932';
 
-for my $count(1 .. 400000) {
+for my $count(1 .. 50000, 200000 .. 340000) {
 
   my $str = sprintf "%06d", $count;
   substr($str, 1, 0, '.');
@@ -84,7 +84,7 @@ else {print "not ok 1\n"}
 
 $ok = 1;
 
-for my $count(1 .. 400000) {
+for my $count(1 .. 50000, 200000 .. 340000) {
 
   my $str = sprintf "%06d", $count;
   substr($str, 1, 0, '.');
@@ -129,7 +129,7 @@ else {print "not ok 2\n"}
 
 $ok = 1;
 
-for my $count(1 .. 222507) {
+for my $count(1 .. 50000, 150000 .. 222507) {
 
   my $str = sprintf "%06d", $count;
   substr($str, 1, 0, '.');
@@ -163,7 +163,7 @@ $ok = 1;
 eval{Math::MPFR::_dd_bytes('1e-2', 106)};
 
 if(!$@) {
-  for my $count(1 .. 400000) {
+  for my $count(1 .. 50000, 200000 .. 340000) {
 
     my $str = sprintf "%06d", $count;
     substr($str, 1, 0, '.');
@@ -196,11 +196,85 @@ else {
   print "ok 4\n";
 }
 
+$ok = 1;
 
+my $save_prec = Math::MPFR::Rmpfr_get_default_prec();
+
+if(mant_dig() == 113) {
+  Math::MPFR::Rmpfr_set_default_prec(113);
+  my @str1 = ('0.1e-16494', '0.111111e-16494',
+              '0.1e-16493', '0.101e-16493', '0.11e-16493',
+              '0.11e-16492','0.1101e-16492', '0.111e-16492',
+              '0.101e-16491', '0.10101e-16491', '0.1011e-16491', '0.11101e-16491', '0.1101e-16491', '0.1111e-16491',);
+
+  my @str2 = ('0', '0',
+              '0.1e-16493', '0.1e-16493', '0.1e-16492',
+              '0.11e-16492', '0.11e-16492', '0.10e-16491',
+              '0.101e-16491','0.101e-16491', '0.110e-16491', '0.111e-16491', '0.11e-16491', '0.1e-16490');
+
+  my $len = scalar(@str1);
+  die "size mismatch" if @str1 != @str2;
+
+  for(my $i = 0; $i < $len; $i++) {
+    if(set_mpfr('0b' . $str1[$i]) != set_mpfr('0b' . $str2[$i])) {
+      warn "\n", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": $str1[$i] != $str2[$i]\n";
+      $ok = 0;
+    }
+  }
+}
+elsif(mant_dig() == 64) {
+  Math::MPFR::Rmpfr_set_default_prec(64);
+  my @str1 = ('0.1e-16445', '0.111111e-16445',
+              '0.1e-16444', '0.101e-16444', '0.11e-16444',
+              '0.11e-16443','0.1101e-16443', '0.111e-16443',
+              '0.101e-16442', '0.10101e-16442', '0.1011e-16442', '0.11101e-16442', '0.1101e-16442', '0.1111e-16442',);
+
+  my @str2 = ('0', '0',
+              '0.1e-16444', '0.1e-16444', '0.1e-16443',
+              '0.11e-16443', '0.11e-16443', '0.10e-16442',
+              '0.101e-16442','0.101e-16442', '0.110e-16442', '0.111e-16442', '0.11e-16442', '0.1e-16441');
+
+  my $len = scalar(@str1);
+  die "size mismatch" if @str1 != @str2;
+
+  for(my $i = 0; $i < $len; $i++) {
+    if(set_mpfr('0b' . $str1[$i]) != set_mpfr('0b' . $str2[$i])) {
+      warn "\n", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": $str1[$i] != $str2[$i]\n";
+      $ok = 0;
+    }
+  }
+}
+else {
+  Math::MPFR::Rmpfr_set_default_prec(53);
+  my @str1 = ('0.1e-1074', '0.111111e-1074',
+              '0.1e-1073', '0.101e-1073', '0.11e-1073',
+              '0.11e-1072','0.1101e-1072', '0.111e-1072',
+              '0.101e-1071', '0.10101e-1071', '0.1011e-1071', '0.11101e-1071', '0.1101e-1071', '0.1111e-1071',);
+
+  my @str2 = ('0', '0',
+              '0.1e-1073', '0.1e-1073', '0.1e-1072',
+              '0.11e-1072', '0.11e-1072', '0.10e-1071',
+              '0.101e-1071','0.101e-1071', '0.110e-1071', '0.111e-1071', '0.11e-1071', '0.1e-1070');
+
+  my $len = scalar(@str1);
+  die "size mismatch" if @str1 != @str2;
+
+  for(my $i = 0; $i < $len; $i++) {
+    if(set_mpfr('0b' . $str1[$i]) != set_mpfr('0b' . $str2[$i])) {
+      warn "\n", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": $str1[$i] != $str2[$i]\n";
+      $ok = 0;
+    }
+  }
+}
+
+Math::MPFR::Rmpfr_set_default_prec($save_prec);
+
+if($ok) { print "ok 5\n" }
+else {print "not ok 5\n" }
 
 if($Math::MPFR::VERSION < 4.02) {
   warn "\nSkipping remaining tests.\nThey require Math-MPFR-4.02 and $Math::MPFR::VERSION is installed\n";
-  print "ok $_\n" for 5..$t;
+  print "ok $_\n" for 6..$t;
   exit 0;
 }
 
@@ -211,7 +285,7 @@ $Math::NV::no_warn = 0;
 eval{Math::MPFR::_d_bytes('1e-2', 53)};
 
 if(!$@) {
-  for my $count(1 .. 400000) {
+  for my $count(1 .. 50000, 200000 .. 340000) {
 
     my $str = sprintf "%06d", $count;
     substr($str, 1, 0, '.');
@@ -227,12 +301,12 @@ if(!$@) {
     }
   }
 
-  if($ok) {print "ok 5\n"}
-  else {print "not ok 5\n"}
+  if($ok) {print "ok 6\n"}
+  else {print "not ok 6\n"}
 }
 else {
-  warn "\n skipping test 5:\n\$\@:\n$@\n";
-  print "ok 5\n";
+  warn "\n skipping test 6:\n\$\@:\n$@\n";
+  print "ok 6\n";
 }
 
 
@@ -242,7 +316,7 @@ $ok = 1;
 eval{Math::MPFR::_ld_bytes('1e-2', Math::MPFR::LDBL_MANT_DIG)};
 
 if(!$@) {
-  for my $count(1 .. 400000) {
+  for my $count(1 .. 50000, 200000 .. 340000) {
 
     my $str = sprintf "%06d", $count;
     substr($str, 1, 0, '.');
@@ -258,12 +332,12 @@ if(!$@) {
     }
   }
 
-  if($ok) {print "ok 6\n"}
-  else {print "not ok 6\n"}
+  if($ok) {print "ok 7\n"}
+  else {print "not ok 7\n"}
 }
 else {
-  warn "\n skipping test 6:\n\$\@:\n$@\n";
-  print "ok 6\n";
+  warn "\n skipping test 7:\n\$\@:\n$@\n";
+  print "ok 7\n";
 }
 
 $ok = 1;
@@ -271,7 +345,7 @@ $ok = 1;
 eval{Math::MPFR::_f128_bytes('1e-2', 113)};
 
 if(!$@) {
-  for my $count(1 .. 400000) {
+  for my $count(1 .. 50000, 200000 .. 340000) {
 
     my $str = sprintf "%06d", $count;
     substr($str, 1, 0, '.');
@@ -287,13 +361,14 @@ if(!$@) {
     }
   }
 
-  if($ok) {print "ok 7\n"}
-  else {print "not ok 7\n"}
+  if($ok) {print "ok 8\n"}
+  else {print "not ok 8\n"}
 }
 else {
-  warn "\n skipping test 7:\n\$\@:\n$@\n";
-  print "ok 7\n";
+  warn "\n skipping test 8:\n\$\@:\n$@\n";
+  print "ok 8\n";
 }
 
 $ok = 1;
+
 
