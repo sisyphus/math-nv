@@ -27,24 +27,45 @@ DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
 
 eval {require Math::MPFR;};
 
-if($@) {$Math::NV::no_mpfr = $@}
+if($@) {
+  $Math::NV::no_mpfr = $@;
+}
 else   {$Math::NV_no_mpfr = 0 }
 
 if(!$Math::NV_no_mpfr) { # Math::MPFR is available
-  $Math::NV::DBL_MIN = Math::MPFR->new(2);
-  Math::MPFR::Rmpfr_div_2ui($Math::NV::DBL_MIN, $Math::NV::DBL_MIN, 1023, 0);
 
-  $Math::NV::LDBL_MIN = Math::MPFR->new(2);
-  Math::MPFR::Rmpfr_div_2ui($Math::NV::LDBL_MIN, $Math::NV::LDBL_MIN, 16383, 0);
+## normal min values ##
+# double     : (2 ** - 1022) : 0.1E-1021  : 2.2250738585072014e-308
+# long double: (2 ** -16382) : 0.1E-16381 : 3.36210314311209350626e-4932
+# __float128 : (2 ** -16382) : 0.1E-16381 : 3.36210314311209350626267781732175260e-4932
 
-  $Math::NV::FLT128_MIN =  $Math::NV::LDBL_MIN;
+  $Math::NV::DBL_MIN    = Math::MPFR->new(2 **  -1022);
+  $Math::NV::LDBL_MIN   = Math::MPFR->new(2 ** -16382);
+  $Math::NV::FLT128_MIN = $Math::NV::LDBL_MIN;
+
+## denorm_min values ##
+# double     : (2 **  -1074) : 0.1E-1073  : 4.9406564584124654e-324
+# long double: (2 ** -16445) : 0.1E-16444 : 3.64519953188247460253e-4951
+# __float128 : (2 ** -16494) : 0.1E-16493 : 6.47517511943802511092443895822764655e-4966
+
+  $Math::NV::DBL_DENORM_MIN = Math::MPFR->new(2 ** -1074);
+  $Math::NV::LDBL_DENORM_MIN = Math::MPFR->new(2 ** -16445);
+  $Math::NV::FLT128_DENORM_MIN = Math::MPFR->new(2 ** -16494);
+
+  %Math::NV::DENORM_MIN = ('0'   => Math::MPFR->new(0),
+                           '53'  => $Math::NV::DBL_DENORM_MIN,
+                           '64'  => $Math::NV::LDBL_DENORM_MIN,
+                           '106' => $Math::NV::DBL_DENORM_MIN,
+                           '113' => $Math::NV::FLT128_DENORM_MIN,
+                           );
+
+$Math::NV::mpfr_strtofr_bug = Math::MPFR::MPFR_VERSION() > 196869 ? 0 : 1;
+
 }
 
 $Math::NV::no_warn = 0; # set to 1 to disable warning about non-string argument
                         # set to 2 to disable output of the 2 non-matching values
                         # set to 3 to disable both of the above
-
-$Math::NV::mpfr_strtofr_bug = Math::MPFR::MPFR_VERSION() > 196869 ? 0 : 1;
 
 # %_itsa is utilised in the formulation of the diagnostic message
 # when it's detected that the provided arg is not a string.
@@ -147,9 +168,18 @@ sub is_eq_mpfr {
 
   my $fr_bits = get_relevant_prec($fr); # check for subnormality
 
-  if($fr_bits) { # convert $fr to correct subnormal form
+  if($fr_bits <= 0) { # return 0
+    my $signbit = Math::MPFR::Rmpfr_signbit($fr) ? -1 : 1;
+    return $Math::NV::DENORM_MIN{'0'} * $signbit;
+  }
+  if($fr_bits < $bits) { # convert $fr to correct subnormal form
     if($Math::NV::mpfr_strtofr_bug) {
-      Math::MPFR::Rmpfr_set($fr, get_subnormal($_[0], $fr_bits), 0);
+      if($fr_bits == 1) {
+        Math::MPFR::Rmpfr_set($fr, get_subnormal($_[0], $fr_bits, $bits, $fr), 0);
+      }
+      else {
+        Math::MPFR::Rmpfr_set($fr, get_subnormal($_[0], $fr_bits, $bits), 0);
+      }
     }
     else {
       _subnormalize($inex, $fr, $bits);
@@ -204,9 +234,18 @@ sub nv_mpfr {
 
     my $val_bits = get_relevant_prec($val); # check for subnormality.
 
-    if($val_bits) { # convert $val to correct subnormal form
+    if($val_bits <= 0) {
+      my $signbit = Math::MPFR::Rmpfr_signbit($val) ? -1 : 1;
+      return $Math::NV::DENORM_MIN{'0'} * $signbit; # return 0
+    }
+    if($val_bits < $bits) { # convert $val to correct subnormal form
       if($Math::NV::mpfr_strtofr_bug) {
-        Math::MPFR::Rmpfr_set($val, get_subnormal($_[0], $val_bits), 0);
+        if($val_bits == 1) {
+          Math::MPFR::Rmpfr_set($val, get_subnormal($_[0], $val_bits, $bits, $val), 0);
+        }
+        else {
+          Math::MPFR::Rmpfr_set($val, get_subnormal($_[0], $val_bits, $bits), 0);
+        }
       }
       else {
         _subnormalize($inex, $val, $bits);
@@ -223,9 +262,19 @@ sub nv_mpfr {
 
     my $val_bits = get_relevant_prec($val); # check for subnormality.
 
-    if($val_bits) { # convert $val to correct subnormal form
+    if($val_bits <= 0) { # return 0
+      my $signbit = Math::MPFR::Rmpfr_signbit($val) ? -1 : 1;
+      return $Math::NV::DENORM_MIN{'0'} * $signbit;
+    }
+
+    if($val_bits < 53) { # convert $val to correct subnormal form
       if($Math::NV::mpfr_strtofr_bug) {
-        Math::MPFR::Rmpfr_set($val, get_subnormal($_[0], $val_bits), 0);
+        if($val_bits == 1) {
+          Math::MPFR::Rmpfr_set($val, get_subnormal($_[0], $val_bits, 53, $val), 0);
+        }
+        else {
+          Math::MPFR::Rmpfr_set($val, get_subnormal($_[0], $val_bits, 53), 0);
+        }
       }
       else {
         _subnormalize($inex, $val, $bits);
@@ -288,16 +337,25 @@ sub set_mpfr {
 
     my $val_bits = get_relevant_prec($val); # check for subnormality.
 
-    if($val_bits) { # convert $val to correct subnormal form
+    if($val_bits <= 0) { # return 0
+      my $signbit = Math::MPFR::Rmpfr_signbit($val) ? -1 : 1;
+      return $Math::NV::DENORM_MIN{'0'} * $signbit;
+    }
+
+    if($val_bits < $bits) { # convert $val to correct subnormal form
       if($Math::NV::mpfr_strtofr_bug) {
-        Math::MPFR::Rmpfr_set($val, get_subnormal($_[0], $val_bits), 0);
+        if($val_bits == 1) {
+          Math::MPFR::Rmpfr_set($val, get_subnormal($_[0], $val_bits, $bits, $val), 0);
+        }
+        else {
+          Math::MPFR::Rmpfr_set($val, get_subnormal($_[0], $val_bits, $bits), 0);
+        }
       }
       else {
         _subnormalize($inex, $val, $bits);
       }
     }
 
-#  _subnormalize($inex, $val, $bits);
   return Math::MPFR::Rmpfr_get_NV($val, 0);
 
 }
@@ -331,15 +389,31 @@ sub _dd_obj {
 
 # use _subnormalize instead if MPFR_VERSION > 196869
 sub get_subnormal {
-  my($str, $prec) = (shift, shift);
+
+  my($str, $prec, $bits) = (shift, shift, shift);
+
+  # If prec == 0, then the value is less than the
+  # minimum subnormal number - therefore it is 0.
+  if($prec == 0) {
+    return $Math::NV::DENORM_MIN{'0'};
+  }
+
+  # Can't set precision to 1 bit with
+  # older versions of the mpfr library
+  if($prec == 1) {
+    my $signbit = Math::MPFR::Rmpfr_signbit($_[0]) ? -1 : 1;
+    return ($Math::NV::DENORM_MIN{$bits} * 2 * $signbit) if(abs($_[0]) >=  ($Math::NV::DENORM_MIN{$bits} / 2)
+                                                                          + $Math::NV::DENORM_MIN{$bits});
+    return $Math::NV::DENORM_MIN{$bits} * $signbit;
+  }
+
   my $val = Math::MPFR::Rmpfr_init2($prec);
   Math::MPFR::Rmpfr_set_str($val, $str, 0, 0);
   return $val;
 }
 
 sub get_relevant_prec {
-  my $val = shift;
-  my $bits = Math::MPFR::Rmpfr_get_prec($val);
+  my $bits = Math::MPFR::Rmpfr_get_prec($_[0]);
   die "Unrecognized precision ($bits) handed to get_relevant_prec()"
     unless ($bits == 53 || $bits == 64 || $bits == 113 || $bits == 106 || $bits == 2098);
 #  my $init = $bits == 53 ? 1022 + 53
@@ -351,11 +425,8 @@ sub get_relevant_prec {
                                                            : $bits == 64 ? 16445
                                                                          : 16494;
 
-  my $ret = $init + Math::MPFR::Rmpfr_get_exp($val);
+  return $init + Math::MPFR::Rmpfr_get_exp($_[0]);
 
-  return $ret if($ret < $bits && $ret > 0);
-
-  return 0;
 }
 
 # use get_subnormal instead if MPFR_VERSION <= 196869
