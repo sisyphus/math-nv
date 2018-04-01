@@ -1,9 +1,4 @@
 
-# NV.pm will always load Math::MPFR iff it's available.
-# Math::NV::no_mpfr will be set to 0 iff Math::MPFR loaded successfully.
-# Otherwise $Math::NV::no_mpfr will be set to the error message that the
-# attempt to load Math::MPFR produced.
-
 # Smallest normal __float128 is:
 # 3.3621031431120935062626778173217526e-4932
 
@@ -36,25 +31,22 @@ eval{Math::MPFR::_d_bytes('1e-2', 53)};
 $have_d_bytes = 1 unless $@;
 
 my $have_ld_bytes = 0;
-eval{Math::MPFR::_ld_bytes('1e-2', Math::MPFR::LDBL_MANT_DIG)};
-$have_ld_bytes = 1 unless $@;
+
+unless(mant_dig() == 106) {
+  eval{Math::MPFR::_ld_bytes('1e-2', Math::MPFR::LDBL_MANT_DIG)};
+  $have_ld_bytes = 1 unless $@;
+}
 
 my $have_f128_bytes = 0;
 eval{Math::MPFR::_f128_bytes('1e-2', 113)};
 $have_f128_bytes = 1 unless $@;
 
 
-my $check = Math::MPFR::Rmpfr_init2(500);
+my $check = Math::MPFR::Rmpfr_init2(300);
 
 $exponent = $Config{nvtype} eq 'double' ? '-308' : '-4932';
 
 ########### Test 1 starts
-
-# Set $str to $check (500 bits of precision)
-# Check that the NV ($nv) retrieved from $check
-# is the same as the NV returned by set_mpfr($str)
-# Check also that that the hex dump of $nv
-# matches the hex dump returned by nv_mpfr($str)
 
 for my $count(1 .. 10000, 200000 .. 340000) {
 
@@ -100,20 +92,10 @@ $Math::NV::no_warn = 2;
 if($ok) {print "ok 1\n"}
 else {print "not ok 1\n"}
 
-$ok = 1;
-
 ########### Test 1 ends
 ########### Test 2 starts
 
-# Check that whenever perl and nv_mpfr() assign
-# different values for a particular $str, then
-# is_eq_mpfr($str) returns false.
-# Check also that whenever perl and nv_mpfr()
-# assign the same value for a particular $str,
-# then is_eq_mpfr($str) returns true.
-# So long as these conditions hold, we can be
-# confident that is_eq_mpfr($str) assigns the
-# same value as nv_mpfr($str)
+$ok = 1;
 
 for my $count(1 .. 10000, 200000 .. 340000) {
 
@@ -158,19 +140,10 @@ for my $count(1 .. 10000, 200000 .. 340000) {
 if($ok) {print "ok 2\n"}
 else {print "not ok 2\n"}
 
-$ok = 1;
-
 ########### Test 2 ends
 ########### Test 3 starts
 
-# Check that nv_mpfr($str) calculates exactly
-# the same value for double and double-double
-# whenever $str represents a subnormal double
-# value. If $Config{nvtype} is 'double', then
-# nv_mpfr($str, 53) uses only the Math::NV
-# code for the calculation.
-# Otherwise Math::MPFR::_d_bytes() is called
-# upon.
+$ok = 1;
 
 for my $count(1 .. 10000, 150000 .. 222507) {
 
@@ -201,13 +174,10 @@ for my $count(1 .. 10000, 150000 .. 222507) {
 if($ok) {print "ok 3\n"}
 else {print "not ok 3\n"}
 
-$ok = 1;
-
 ########### Test 3 ends
 ########### Test 4 starts
 
-# Checks that Math::MPFR::_dd_bytes($str, 106)
-# with nv_mpfr($str, 106)
+$ok = 1;
 
 if($have_dd_bytes) {
   for my $count(1 .. 10000, 200000 .. 340000) {
@@ -247,11 +217,6 @@ $ok = 1;
 
 ########### Test 4 ends
 ########### Test 5 starts
-
-# Checks that a few select subnormals (and smaller)
-# are evaluated correctly by set_mpfr() and nv_mpfr().
-# Specifically, these values are either 0, 1, 2 or 3
-# bit subnormals
 
 my $save_prec = Math::MPFR::Rmpfr_get_default_prec();
 
@@ -328,7 +293,7 @@ elsif(mant_dig() == 64) {
 ### 53-bit float  ###
 #####################
 
-else {
+elsif(mant_dig() == 53) {
   Math::MPFR::Rmpfr_set_default_prec(53);
   my @str1 = ('0.1e-1074', '0.111111e-1074',
               '0.1e-1073', '0.101e-1073', '0.11e-1073',
@@ -371,12 +336,42 @@ else {
 
 }
 
+#####################
+### 106-bit float ###
+#####################
+
+else { # double-double
+  my @str1 = ('0.1e-1074', '0.111111e-1074',
+              '0.1e-1073', '0.101e-1073', '0.11e-1073',
+              '0.11e-1072','0.1101e-1072', '0.111e-1072',
+              '0.101e-1071', '0.10101e-1071', '0.1011e-1071', '0.11101e-1071', '0.1101e-1071', '0.1111e-1071',);
+
+  my @str2 = ('0', '0',
+              '0.1e-1073', '0.1e-1073', '0.1e-1072',
+              '0.11e-1072', '0.11e-1072', '0.10e-1071',
+              '0.101e-1071','0.101e-1071', '0.110e-1071', '0.111e-1071', '0.11e-1071', '0.1e-1070');
+
+  my $len = scalar(@str1);
+  die "size mismatch" if @str1 != @str2;
+
+  for(my $i = 0; $i < $len; $i++) {
+    my $x = nv_mpfr('0b' . $str1[$i], 53);
+    my @x = (substr($x, 0, 16), substr($x, 16, 16));
+    my $arref = nv_mpfr('0b' . $str2[$i]);
+    if($x[0] ne $$arref[0] || $$arref[1] =~ /[^0]/ || $x[1] =~ /[^0]/) {
+      warn "\nTesting _d_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": Got $x and @$arref\n";
+      $ok = 0;
+    }
+  }
+}
+
 Math::MPFR::Rmpfr_set_default_prec($save_prec);
 
 if($ok) { print "ok 5\n" }
 else {print "not ok 5\n" }
 
-$ok = 1;
+########### Test 5 ends
+########### Test 6 starts
 
 if($Math::MPFR::VERSION < 4.02) {
   warn "\nSkipping remaining tests.\nThey require Math-MPFR-4.02 and $Math::MPFR::VERSION is installed\n";
@@ -384,16 +379,9 @@ if($Math::MPFR::VERSION < 4.02) {
   exit 0;
 }
 
+$ok = 1;
+
 $Math::NV::no_warn = 0;
-
-########### Test 5 ends
-########### Test 6 starts
-
-# Checks that nv_mpfr($str, 53) and
-# Math::MPFR::_d_bytes($str, 53) agree.
-# Not very meaningful if $Config{nvtype}
-# is not 'double' because, in such a
-# case, nv_mpfr() calls in _d_bytes().
 
 if($have_d_bytes) {
 
@@ -421,17 +409,10 @@ else {
   print "ok 6\n";
 }
 
-$ok = 1;
-
 ########### Test 6 ends
 ########### Test 7 starts
 
-# Checks that nv_mpfr() and
-# Math::MPFR::_ld_bytes() agree. Not
-# very meaningful if $Config{nvtype}
-# is not 'long double' because, in
-# such a case, nv_mpfr() calls
-# in _ld_bytes().
+$ok = 1;
 
 if($have_ld_bytes) {
   for my $count(1 .. 10000, 200000 .. 340000) {
@@ -458,16 +439,10 @@ else {
   print "ok 7\n";
 }
 
-$ok = 1;
-
 ########### Test 7 ends
 ########### Test 8 starts
 
-# Checks that nv_mpfr() and
-# Math::MPFR::_f128_bytes() agree. Not
-# very meaningful if $Config{nvtype}
-# is not '__float128' because, in such
-# a case, nv_mpfr() calls in _ld_bytes().
+$ok = 1;
 
 if($have_f128_bytes) {
   for my $count(1 .. 10000, 200000 .. 340000) {
@@ -494,20 +469,12 @@ else {
   print "ok 8\n";
 }
 
-$ok = 1;
-
-$save_prec = Math::MPFR::Rmpfr_get_default_prec();
-
 ########### Test 8 ends
 ########### Test 9 starts
 
-# Testing _d_bytes(), _ld_bytes(), and
-# _f128_bytes() on some select 0, 1, 2
-# and 3 bit subnormal values. We
-# simply check that the values assigned
-# in @str1 equate to the corresponding
-# values assigned in @str2.
+$ok = 1;
 
+$save_prec = Math::MPFR::Rmpfr_get_default_prec();
 
 #####################
 ### 113-bit float ###
@@ -623,7 +590,7 @@ elsif(mant_dig() == 64) {
 ### 53-bit float  ###
 #####################
 
-else {
+elsif(mant_dig() == 53) {
 
   Math::MPFR::Rmpfr_set_default_prec(64);
   my @str1 = ('0.1e-16445', '0.111111e-16445',
@@ -676,6 +643,34 @@ else {
     }
   }
   else {warn "\n Skipping  _f128_bytes tests - not available\n"}
+}
+
+#####################
+### 106-bit float ###
+#####################
+
+else { # double-double
+  my @str1 = ('0.1e-1074', '0.111111e-1074',
+              '0.1e-1073', '0.101e-1073', '0.11e-1073',
+              '0.11e-1072','0.1101e-1072', '0.111e-1072',
+              '0.101e-1071', '0.10101e-1071', '0.1011e-1071', '0.11101e-1071', '0.1101e-1071', '0.1111e-1071',);
+
+  my @str2 = ('0', '0',
+              '0.1e-1073', '0.1e-1073', '0.1e-1072',
+              '0.11e-1072', '0.11e-1072', '0.10e-1071',
+              '0.101e-1071','0.101e-1071', '0.110e-1071', '0.111e-1071', '0.11e-1071', '0.1e-1070');
+
+  my $len = scalar(@str1);
+  die "size mismatch" if @str1 != @str2;
+
+  for(my $i = 0; $i < $len; $i++) {
+    my $x = nv_mpfr('0b' . $str1[$i], 53);
+    my $y = nv_mpfr('0b' . $str2[$i], 53);
+    if($x ne $y ) {
+      warn "\nTesting _d_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": Got $x and $y\n";
+      $ok = 0;
+    }
+  }
 }
 
 Math::MPFR::Rmpfr_set_default_prec($save_prec);
