@@ -158,9 +158,9 @@ sub is_eq_mpfr {
 
   if($fr_bits <= 0) { # return 0
     my $signbit = Rmpfr_signbit($fr) ? -1 : 1;
-    return $Math::NV::DENORM_MIN{'0'} * $signbit;
+    Rmpfr_set($fr, $Math::NV::DENORM_MIN{'0'} * $signbit, MPFR_RNDN);
   }
-  if($fr_bits < $bits) { # convert $fr to correct subnormal form
+  elsif($fr_bits < $bits) { # convert $fr to correct subnormal form
     if($Math::NV::mpfr_strtofr_bug) {
       if($fr_bits == 1) {
         Rmpfr_set($fr, get_subnormal($_[0], $fr_bits, $bits, $fr), 0);
