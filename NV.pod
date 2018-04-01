@@ -38,10 +38,10 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
    $bool = is_eq_mpfr($str);
 
      Returns true if the value perl assigns from the string $str is
-     equal to the value mpfr assigns from the same string.
-     Else returns false - which implies that either perl or mpfr is
-     buggy in its assignment of that value. (Or they could both be
-     buggy - though it's very unlikely that mpfr suffers such a bug.)
+     equal to the value mpfr assigns from the same string. If the
+     string represents a subnormal value we first subnormalize the
+     mpfr value before comparing the two values.
+
 
    $nv = nv($str);        # scalar context
    ($nv, $iv) = nv($str); # list context
@@ -71,10 +71,13 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
    $nv = set_mpfr($str);
     Uses Math::MPFR to assign the value specified by $str to the NV $nv.
     Rounding is to nearest, ties to even.
+    If the string represents a subnormal value, then the value held by
+    the Math::MPFR object is subnormalized before being returned in $nv.
 
    $hex = nv_mpfr($str, [$bits]); # Returns a hex dump of the NV,
                                   # not the actual NV.
 
+    (Again, values will be subnormalized if appropriate.)
     If $bits is not specified, it will be set to the value returned by
     mant_dig() - which is the appropriate value for the current perl
     that is being run.
@@ -116,7 +119,8 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
     Note, however, that for nv_mpfr() to return the hex form of the
     __float128 type, the mpfr library (as used by Math::MPFR) needs to have
     been built using the configure option --enable-float128, and this
-    configure option is only available with mpfr-4.0.0 or later.
+    configure option is only available with mpfr-4.0.0 or later - and is
+    not available for all architectures.
 
     As is the case with nv(), you'll generally want $str to be a string.
     For example, specify the string "2.3", rather than the NV 2.3.
@@ -133,11 +137,14 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
    $digits = mant_dig();
 
     Returns the number of bits the NV mantissa contains. This is
-    normally 53 if nv_type() is double - otherwise usually (but by no
-    means always) 64.
-    It returns the value of the C macro DBL_MANT_DIG, LDBL_MANT_DIG,
-    or FLT128_MANT_DIG depending upon whichever is appropriate for
-    perl's configuration.
+    normally 53 if nv_type() is double. For nv_type() of 'long double'
+    it can be either 64 (extended precision long double), 113 (quad
+    long double) or 106 (IBM double-double).
+    For nv_type() of '__float128', mant_dig() will return 113.
+    This module accommodates no other than those 4 values.
+    IOW, expect mant_dig() to return the value of the float.h macro
+    DBL_MANT_DIG, LDBL_MANT_DIG, or FLT128_MANT_DIG depending upon
+    whichever is appropriate for perl's configuration.
 
    ($mantissa, $exponent, $precision) = ld2binary($nv);
 
@@ -181,13 +188,6 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
 
 =head1 PACKAGE VARIABLES
 
-   $Math::NV::no_mpfr
-
-    At startup, NV.pm runs "eval{require Math::MPFR;};".
-    $Math::NV::no_mpfr is automatically set to 0 (if Math::MPFR loads)
-    or to $@ (if Math::MPFR fails to load).
-    Can subsequently be overwritten by assigning directly to it.
-
    $Math::NV::no_warn
 
     Initially set to 0 - which means that if either nv(), nv_mpfr(),
@@ -195,6 +195,9 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
     then a warning will be emitted.
     To disable this warning, simply assign 1 (or any other true numeric
     value) to this variable.
+    Set to 2 to disable output of the 2 non-matching values when is_eq()
+    or is_eq_mpfr() return false.
+    Set to 3 to disable both of the above warnings.
 
 =head1 LICENSE
 
