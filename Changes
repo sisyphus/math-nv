@@ -2,7 +2,8 @@ Revision history for Perl module Math::NV
  1.03
     - Move POD to separate file (NV.pod)
     - cater correctly for subnormal values in is_eq_mpfr() and nv_mpfr()
-    - add set_C() and set_mpfr()
+    - add set_C() and set_mpfr
+    - make Math::MPFR a prerequisite
 
  1.02
     - Update nv_mpfr() to accommodate IEEE 754 quad long double type.
