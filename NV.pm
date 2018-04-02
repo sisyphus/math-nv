@@ -54,11 +54,10 @@ DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
                            '113' => $Math::NV::FLT128_DENORM_MIN,
                            );
 
+# With mpfr-3.1.5 and earlier, the ternary value returned
+# by mpfr_strtofr is unreliable - thereby making that function
+# unusable with mpfr_subnormalize.
 $Math::NV::mpfr_strtofr_bug = MPFR_VERSION() <= 196869 ? 1 : 0;
-
-# There are some old devel versions of 4.0.0 that
-# contain the bug:
-$Math::NV::mpfr_strtofr_bug = 1 if 262144 == MPFR_VERSION() && MPFR_VERSION_STRING() =~ /dev/;
 
 $Math::NV::no_warn = 0; # set to 1 to disable warning about non-string argument
                         # set to 2 to disable output of the 2 non-matching values
