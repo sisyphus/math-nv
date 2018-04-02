@@ -9,7 +9,7 @@ require Exporter;
 *import = \&Exporter::import;
 require DynaLoader;
 
-$Math::NV::VERSION = '1.03';
+$Math::NV::VERSION = '2.0';
 
 DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
 
@@ -264,17 +264,11 @@ sub nv_mpfr {
   }
 
   if($bits == 64) {
-    die "In nv_mpfr(): _ld_bytes() unreliable with this version ($Math::MPFR::VERSION) - need at least 4.02"
-      unless $Math::MPFR::VERSION >= 4.02;
-
     my @bytes = Math::MPFR::_ld_bytes($_[0], 64);
     return join('', @bytes);
   }
 
   if($bits == 113) {
-
-    die "In nv_mpfr(): _ld_bytes() and _f128_bytes() unreliable with this version ($Math::MPFR::VERSION) - need at least 4.02"
-      unless $Math::MPFR::VERSION >= 4.02;
 
     my $t;
     eval{$t = Math::MPFR::_have_IEEE_754_long_double();}; # needs Math-MPFR-3.33, perl-5.22.
