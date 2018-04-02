@@ -89,10 +89,7 @@ if(106 == mant_dig()) {
   warn "\nSkipping tests 9 and 10 for double-double platform\n";
   print "ok 9\nok 10\n";
 }
-elsif($Math::MPFR::VERSION < '4.02') {
-  warn "\nSkipping tests 9 & 10 - no reliable _f128_bytes or _ld_128bytes\n";
-  print "ok 9\nok 10\n";
-}
+
 else {
   $val = nv_mpfr('1e+127', 64);
 
