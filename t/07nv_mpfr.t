@@ -28,9 +28,7 @@ else {
   print "not ok 2\n";
 }
 
-
 $val = nv_mpfr('1e+129', 106);
-
 
 if(lc((@$val)[0]) eq "5ab7151b377c247e") {print "ok 3\n"}
 else {
@@ -91,48 +89,25 @@ if(106 == mant_dig()) {
   warn "\nSkipping tests 9 and 10 for double-double platform\n";
   print "ok 9\nok 10\n";
 }
+elsif($Math::MPFR::VERSION < '4.02') {
+  warn "\nSkipping tests 9 & 10 - no reliable _f128_bytes or _ld_128bytes\n";
+  print "ok 9\nok 10\n";
+}
 else {
-  eval {$val = nv_mpfr('1e+127', 64);};
-  if($Math::MPFR::VERSION < '3.27') {
-    my $mess = $@;
-    if($mess =~ /^No _ld_bytes with this version/) {print "ok 9\n"}
-    else {
-      warn "\n\$\@: $mess\n";
-      print "not ok 9\n";
-    }
-  }
+  $val = nv_mpfr('1e+127', 64);
+
+  if($val =~ /^(0+)?41a4ec5d3fa8ce427b00$/i) {print "ok 9\n"}
   else {
-    if($val =~ /^(0+)?41a4ec5d3fa8ce427b00$/i) {print "ok 9\n"}
-    else {
-      warn "expected \"41a4ec5d3fa8ce427b00\", got ", lc($val), "\n";
-      print "not ok 9\n";
-    }
+    warn "expected \"41a4ec5d3fa8ce427b00\", got ", lc($val), "\n";
+    print "not ok 9\n";
   }
 
-  eval {$val = nv_mpfr('1e+127', 113);};
+  $val = nv_mpfr('1e+127', 113);
 
-  if($Math::MPFR::VERSION < '3.27') {
-    my $mess = $@;
-    if($mess =~ /^No _f128_bytes with this version/) {print "ok 10\n"}
-    else {
-      warn "\n\$\@: $mess\n";
-      print "not ok 10\n";
-    }
-  }
-  elsif($@) {
-    my $mess = $@;
-    if($mess =~ /^__float128 support not built into this Math::MPFR/) {print "ok 10\n"}
-    else {
-      warn "\$\@: $mess\n";
-      print "not ok 10\n";
-    }
-  }
+  if(lc($val) eq "41a4d8ba7f519c84f5ff47ca3e27156a") {print "ok 10\n"}
   else {
-    if(lc($val) eq "41a4d8ba7f519c84f5ff47ca3e27156a") {print "ok 10\n"}
-    else {
-      warn "expected \"41a4d8ba7f519c84f5ff47ca3e27156a\", got ", lc($val), "\n";
-      print "not ok 10\n";
-    }
+    warn "expected \"41a4d8ba7f519c84f5ff47ca3e27156a\", got ", lc($val), "\n";
+    print "not ok 10\n";
   }
 }
 
