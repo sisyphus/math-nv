@@ -30,16 +30,19 @@ $Math::NV::mpfr_strtofr_bug = 1; # Force use of workaround routine.
 
 warn "\nThese tests can take a few moments to complete\n";
 
-my $have_ld_bytes = 0;
-
-unless(mant_dig() == 106) {
-  eval{Math::MPFR::_ld_bytes('1e-2', Math::MPFR::LDBL_MANT_DIG)};
-  $have_ld_bytes = 1 unless $@;
+my($have_ld_bytes, $no_ld_bytes) = (0, '');
+eval{Math::MPFR::_ld_bytes('1e-2', Math::MPFR::LDBL_MANT_DIG)};
+unless($@) {
+  $have_ld_bytes = 1;
 }
+else {$no_ld_bytes = $@}
 
-my $have_f128_bytes = 0;
+my($have_f128_bytes, $no_f128_bytes) = (0, '');
 eval{Math::MPFR::_f128_bytes('1e-2', 113)};
-$have_f128_bytes = 1 unless $@;
+unless($@) {
+  $have_f128_bytes = 1;
+}
+else {$no_f128_bytes = $@}
 
 
 my $check = Math::MPFR::Rmpfr_init2(300);
@@ -460,7 +463,7 @@ if($have_ld_bytes) {
   else {print "not ok 7\n"}
 }
 else {
-  warn "\n skipping test 7 - no Math::MPFR::_ld_bytes()\n";
+  warn "\n skipping test 7 - no Math::MPFR::_ld_bytes()\n$no_ld_bytes\n";
   print "ok 7\n";
 }
 
@@ -496,7 +499,7 @@ if($have_f128_bytes) {
   else {print "not ok 8\n"}
 }
 else {
-  warn "\n skipping test - no Math::MPFR::_f128_bytes()\n";
+  warn "\n skipping test - no Math::MPFR::_f128_bytes()\n$no_f128_bytes\n";
   print "ok 8\n";
 }
 
@@ -614,7 +617,7 @@ elsif(mant_dig() == 64) {
       }
     }
   }
-  else {warn "\n Skipping  _f128_bytes tests - not available\n"}
+  else {warn "\n Skipping  _f128_bytes tests - not available\n$no_f128_bytes\n"}
 }
 
 #####################
@@ -673,7 +676,7 @@ elsif(mant_dig() == 53) {
       }
     }
   }
-  else {warn "\n Skipping  _f128_bytes tests - not available\n"}
+  else {warn "\n Skipping  _f128_bytes tests - not available\n$no_f128_bytes\n"}
 }
 
 #####################
