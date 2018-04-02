@@ -30,14 +30,6 @@ $Math::NV::mpfr_strtofr_bug = 1; # Force use of workaround routine.
 
 warn "\nThese tests can take a few moments to complete\n";
 
-my $have_dd_bytes = 0;
-eval{Math::MPFR::_dd_bytes('1e-2', 106)};
-$have_dd_bytes = 1 unless $@;
-
-my $have_d_bytes = 0;
-eval{Math::MPFR::_d_bytes('1e-2', 53)};
-$have_d_bytes = 1 unless $@;
-
 my $have_ld_bytes = 0;
 
 unless(mant_dig() == 106) {
@@ -55,6 +47,12 @@ my $check = Math::MPFR::Rmpfr_init2(300);
 $exponent = $Config{nvtype} eq 'double' ? '-308' : '-4932';
 
 ########### Test 1 starts
+
+# Set $str to $check (500 bits of precision)
+# Check that the NV ($nv) retrieved from $check
+# is the same as the NV returned by set_mpfr($str)
+# Check also that that the hex dump of $nv
+# matches the hex dump returned by nv_mpfr($str)
 
 for my $count(1 .. 10000, 200000 .. 340000) {
 
@@ -100,10 +98,20 @@ $Math::NV::no_warn = 2;
 if($ok) {print "ok 1\n"}
 else {print "not ok 1\n"}
 
+$ok = 1;
+
 ########### Test 1 ends
 ########### Test 2 starts
 
-$ok = 1;
+# Check that whenever perl and nv_mpfr() assign
+# different values for a particular $str, then
+# is_eq_mpfr($str) returns false.
+# Check also that whenever perl and nv_mpfr()
+# assign the same value for a particular $str,
+# then is_eq_mpfr($str) returns true.
+# So long as these conditions hold, we can be
+# confident that is_eq_mpfr($str) assigns the
+# same value as nv_mpfr($str)
 
 for my $count(1 .. 10000, 200000 .. 340000) {
 
@@ -148,10 +156,19 @@ for my $count(1 .. 10000, 200000 .. 340000) {
 if($ok) {print "ok 2\n"}
 else {print "not ok 2\n"}
 
+$ok = 1;
+
 ########### Test 2 ends
 ########### Test 3 starts
 
-$ok = 1;
+# Check that nv_mpfr($str) calculates exactly
+# the same value for double and double-double
+# whenever $str represents a subnormal double
+# value. If $Config{nvtype} is 'double', then
+# nv_mpfr($str, 53) uses only the Math::NV
+# code for the calculation.
+# Otherwise Math::MPFR::_d_bytes() is called
+# upon.
 
 for my $count(1 .. 10000, 150000 .. 222507) {
 
@@ -182,49 +199,51 @@ for my $count(1 .. 10000, 150000 .. 222507) {
 if($ok) {print "ok 3\n"}
 else {print "not ok 3\n"}
 
+$ok = 1;
+
 ########### Test 3 ends
 ########### Test 4 starts
 
-$ok = 1;
+# Checks that Math::MPFR::_dd_bytes($str, 106)
+# with nv_mpfr($str, 106)
 
-if($have_dd_bytes) {
-  for my $count(1 .. 10000, 200000 .. 340000) {
+for my $count(1 .. 10000, 200000 .. 340000) {
 
-    my $str = sprintf "%06d", $count;
-    substr($str, 1, 0, '.');
-    $str .= "e-308";
+  my $str = sprintf "%06d", $count;
+  substr($str, 1, 0, '.');
+  $str .= "e-308";
 
-    my $out_a = nv_mpfr($str, 106);
-    my $out_b = join '', Math::MPFR::_dd_bytes($str, 106);
+  my $out_a = nv_mpfr($str, 106);
+  my $out_b = join '', Math::MPFR::_dd_bytes($str, 106);
 
-    my @out1 = @$out_a;
-    my @out2 = (substr($out_b, 0, 16), substr($out_b, 16, 16));
+  my @out1 = @$out_a;
+  my @out2 = (substr($out_b, 0, 16), substr($out_b, 16, 16));
 
-    if($out1[0] ne $out2[0]) {
-      warn "msd: $out1[0] ne $out2[0]\n";
-      $ok = 0;
-      last;
-    }
-
-    if($out1[1] ne $out2[1]) {
-      warn "lsd: $out1[1] ne $out2[1]\n";
-      $ok = 0;
-      last;
-    }
+  if($out1[0] ne $out2[0]) {
+    warn "msd: $out1[0] ne $out2[0]\n";
+    $ok = 0;
+    last;
   }
 
-  if($ok) {print "ok 4\n"}
-  else {print "not ok 4\n"}
+  if($out1[1] ne $out2[1]) {
+    warn "lsd: $out1[1] ne $out2[1]\n";
+    $ok = 0;
+    last;
+  }
 }
-else {
-  warn "\n skipping test 4 - no Math::MPFR::_dd_bytes()\n";
-  print "ok 4\n";
-}
+
+if($ok) {print "ok 4\n"}
+else {print "not ok 4\n"}
 
 $ok = 1;
 
 ########### Test 4 ends
 ########### Test 5 starts
+
+# Checks that a few select subnormals (and smaller)
+# are evaluated correctly by set_mpfr() and nv_mpfr().
+# Specifically, these values are either 0, 1, 2 or 3
+# bit subnormals
 
 my $save_prec = Math::MPFR::Rmpfr_get_default_prec();
 
@@ -330,17 +349,15 @@ elsif(mant_dig() == 53) {
     }
   }
 
-  if($have_dd_bytes) {
-    for(my $i = 0; $i < $len; $i++) {
-      my $x = nv_mpfr('0b' . $str1[$i]);
-      my $arref = nv_mpfr('0b' . $str2[$i], 106);
-      if($x ne $$arref[0] || $$arref[1] =~ /[^0]/ ) {
-        warn "\nTesting _dd_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": Got $x and @$arref\n";
-        $ok = 0;
-      }
+  for(my $i = 0; $i < $len; $i++) {
+    my $x = nv_mpfr('0b' . $str1[$i]);
+    my $arref = nv_mpfr('0b' . $str2[$i], 106);
+    if($x ne $$arref[0] || $$arref[1] =~ /[^0]/ ) {
+      warn "\nTesting _dd_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": Got $x and @$arref\n";
+      $ok = 0;
     }
   }
-  else {warn "Skipping _dd_bytes tests - _dd_bytes() not available\n"}
+
 
 }
 
@@ -378,49 +395,49 @@ Math::MPFR::Rmpfr_set_default_prec($save_prec);
 if($ok) { print "ok 5\n" }
 else {print "not ok 5\n" }
 
+$ok = 1;
+
 ########### Test 5 ends
 ########### Test 6 starts
 
-if($Math::MPFR::VERSION < 4.02) {
-  warn "\nSkipping remaining tests.\nThey require Math-MPFR-4.02 and $Math::MPFR::VERSION is installed\n";
-  print "ok $_\n" for 6..$t;
-  exit 0;
-}
-
-$ok = 1;
+# Checks that nv_mpfr($str, 53) and
+# Math::MPFR::_d_bytes($str, 53) agree.
+# Not very meaningful if $Config{nvtype}
+# is not 'double' because, in such a
+# case, nv_mpfr() calls in _d_bytes().
 
 $Math::NV::no_warn = 0;
 
-if($have_d_bytes) {
+for my $count(1 .. 10000, 200000 .. 340000) {
 
-  for my $count(1 .. 10000, 200000 .. 340000) {
+  my $str = sprintf "%06d", $count;
+  substr($str, 1, 0, '.');
+  $str .= "e-308";
 
-    my $str = sprintf "%06d", $count;
-    substr($str, 1, 0, '.');
-    $str .= "e-308";
+  my $out1 = nv_mpfr($str, 53);
+  my $out2 = join '', Math::MPFR::_d_bytes($str, 53);
 
-    my $out1 = nv_mpfr($str, 53);
-    my $out2 = join '', Math::MPFR::_d_bytes($str, 53);
-
-    if($out1 ne $out2) {
-      warn "$out1 ne $out2\n";
-      $ok = 0;
-      last;
-    }
+  if($out1 ne $out2) {
+    warn "$out1 ne $out2\n";
+    $ok = 0;
+    last;
   }
+}
 
-  if($ok) {print "ok 6\n"}
-  else {print "not ok 6\n"}
-}
-else {
-  warn "\n skipping test 6 - no Math::MPFR::_d_bytes()\n";
-  print "ok 6\n";
-}
+if($ok) {print "ok 6\n"}
+else {print "not ok 6\n"}
+
+$ok = 1;
 
 ########### Test 6 ends
 ########### Test 7 starts
 
-$ok = 1;
+# Checks that nv_mpfr() and
+# Math::MPFR::_ld_bytes() agree. Not
+# very meaningful if $Config{nvtype}
+# is not 'long double' because, in
+# such a case, nv_mpfr() calls
+# in _ld_bytes().
 
 if($have_ld_bytes) {
   for my $count(1 .. 10000, 200000 .. 340000) {
@@ -447,10 +464,16 @@ else {
   print "ok 7\n";
 }
 
+$ok = 1;
+
 ########### Test 7 ends
 ########### Test 8 starts
 
-$ok = 1;
+# Checks that nv_mpfr() and
+# Math::MPFR::_f128_bytes() agree. Not
+# very meaningful if $Config{nvtype}
+# is not '__float128' because, in such
+# a case, nv_mpfr() calls in _ld_bytes().
 
 if($have_f128_bytes) {
   for my $count(1 .. 10000, 200000 .. 340000) {
