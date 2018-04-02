@@ -5,6 +5,7 @@ NV.pm
 NV.pod
 NV.xs
 Makefile.PL
+demo/nv.p
 t/01load.t
 t/02mant_dig.t
 t/03nv.t
