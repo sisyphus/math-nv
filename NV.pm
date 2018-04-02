@@ -133,12 +133,18 @@ sub is_eq {
       $first = substr($first, length($first) - 20, 20);
       my $second = scalar(reverse(unpack("h*", pack("F<", $check))));
       $second = substr($second, length($second) - 20, 20);
-      warn "In is_eq:\nperl: $first vs C: $second\n\n";
+      warn "\nIn is_eq:\nperl: $first vs C: $second\n";
+      if($] > 5.02) {
+        warn "perl: ", sprintf("%a", $nv), " vs mpfr: ", sprintf("%a", $check), "\n";
+      }
     }
     else {
-      warn "In is_eq:\nperl: ",
+      warn "\nIn is_eq:\nperl: ",
         scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs C: ",
-        scalar(reverse(unpack("h*", pack("F<", $check)))), "\n\n";
+        scalar(reverse(unpack("h*", pack("F<", $check)))), "\n";
+      if($] > 5.02) {
+        warn "perl: ", sprintf("%a", $nv), " vs mpfr: ", sprintf("%a", $check), "\n";
+      }
     }
   }
   return 0;
@@ -187,12 +193,18 @@ sub is_eq_mpfr {
       $first = substr($first, length($first) - 20, 20);
       my $second = scalar(reverse(unpack("h*", pack("F<", Rmpfr_get_NV($fr, 0)))));
       $second = substr($second, length($second) - 20, 20);
-      warn "In is_eq_mpfr:\nperl: $first vs mpfr: $second\n\n";
+      warn "\nIn is_eq_mpfr: $_[0]\nperl: $first vs mpfr: $second\n";
+      if($] > 5.02) {
+        warn "perl: ", sprintf("%a", $nv), " vs mpfr: ", sprintf("%a", Rmpfr_get_NV($fr, 0)), "\n";
+      }
     }
     else {
-      warn "In is_eq_mpfr:\nperl: ",
+      warn "\nIn is_eq_mpfr: $_[0]\nperl: ",
         scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs mpfr: ",
-        scalar(reverse(unpack("h*", pack("F<", Rmpfr_get_NV($fr, 0))))), "\n\n";
+        scalar(reverse(unpack("h*", pack("F<", Rmpfr_get_NV($fr, 0))))), "\n";
+      if($] > 5.02) {
+        warn "perl: ", sprintf("%a", $nv), " vs mpfr: ", sprintf("%a", Rmpfr_get_NV($fr, 0)), "\n";
+      }
     }
   }
   return 0;
