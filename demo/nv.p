@@ -39,6 +39,8 @@ for(;;) {
            . '.'
            . int(rand(10))
            . int(rand(10))
+           . int(rand(10))
+           . int(rand(10))
            . int(rand(10));
   $mant = '-' . $mant unless $count % 2;
   $exp = int(rand($max_exp));
