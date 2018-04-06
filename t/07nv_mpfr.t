@@ -99,12 +99,18 @@ else {
     print "not ok 9\n";
   }
 
-  $val = nv_mpfr('1e+127', 113);
+  eval {$val = nv_mpfr('1e+127', 113);};
 
-  if(lc($val) eq "41a4d8ba7f519c84f5ff47ca3e27156a") {print "ok 10\n"}
+  if(!$@) {
+    if(lc($val) eq "41a4d8ba7f519c84f5ff47ca3e27156a") {print "ok 10\n"}
+    else {
+      warn "expected \"41a4d8ba7f519c84f5ff47ca3e27156a\", got ", lc($val), "\n";
+      print "not ok 10\n";
+    }
+  }
   else {
-    warn "expected \"41a4d8ba7f519c84f5ff47ca3e27156a\", got ", lc($val), "\n";
-    print "not ok 10\n";
+    warn "\n Skipping test 10 as _f128_bytes() is unsupported\n";
+    print "ok 10\n";
   }
 }
 
