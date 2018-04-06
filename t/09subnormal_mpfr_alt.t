@@ -49,6 +49,8 @@ my $check = Math::MPFR::Rmpfr_init2(300);
 
 $exponent = $Config{nvtype} eq 'double' ? '-308' : '-4932';
 
+
+
 ########### Test 1 starts
 
 # Set $str to $check (500 bits of precision)
