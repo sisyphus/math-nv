@@ -49,8 +49,6 @@ my $check = Math::MPFR::Rmpfr_init2(300);
 
 $exponent = $Config{nvtype} eq 'double' ? '-308' : '-4932';
 
-
-
 ########### Test 1 starts
 
 # Set $str to $check (500 bits of precision)
@@ -70,7 +68,11 @@ for my $count(1 .. 10000, 200000 .. 340000) {
   my $nv = Math::MPFR::Rmpfr_get_NV($check, 0);
 
   if($nv != set_mpfr($str)) {
-    warn "\n$nv != ", set_mpfr($str), "\n";
+    warn "\n$nv != ", set_mpfr($str), " for $str\n";
+    if($] >= '5.022') {
+      warn "The former is: ", sprintf("%a\n", $nv);
+      warn "The latter is: ", sprintf "%a\n", set_mpfr($str);
+    }
     $ok = 0;
     last;
   }
@@ -302,7 +304,7 @@ elsif(mant_dig() == 64) {
               '0b0.101e-16442', '0b0.10101e-16442', '0b0.1011e-16442', '0b0.11101e-16442', '0b0.1101e-16442', '0b0.1111e-16442',);
 
   my @str2 = ('0', '0b0.1e-16444', '-0.0', '-0b0.1e-16444',
-              '0', '0b0.1e-16444', '0', '-0b0.1e-16444',
+              '0b0.1e-16444', '-0b0.1e-16444', '0b0.1e-16444', '-0b0.1e-16444',
               '0b0.1e-16444', '0b0.1e-16444', '0b0.1e-16443', '-0b0.1e-16443',
               '0b0.11e-16443', '0b0.11e-16443', '0b0.10e-16442',
               '0b0.101e-16442','0b0.101e-16442', '0b0.110e-16442', '0b0.111e-16442', '0b0.11e-16442', '0b0.1e-16441');
@@ -464,7 +466,7 @@ if($have_ld_bytes) {
     my $out2 = join '', Math::MPFR::_ld_bytes($str, Math::MPFR::LDBL_MANT_DIG);
 
     if($out1 ne $out2 && $out1 ne ('0000'. $out2) && $out1 ne ('000000000000'. $out2)) {
-      warn "$out1 ne $out2\n";
+      warn "\nIn _ld_bytes: $out1 ne $out2 for $str\n";
       $ok = 0;
       last;
     }
@@ -549,20 +551,20 @@ if(mant_dig() == 113) {
     my $y = nv_mpfr($str2[$i], 64);
     if($x ne $y ) {
       my $p = $str1[$i] =~ /0b/ ? 2 : 10;
-      warn "\nTesting _ld_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p)), ": Got $x and $y\n";
+      warn "\nTesting _ld_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p)), ": Got $x and $y for $str1[$i] and $str2[$i]\n";
       $ok = 0;
     }
   }
 
   Math::MPFR::Rmpfr_set_default_prec(53);
-  @str1 = ('0b0.1e-1074', '0b0.100001e-1074', '-0b0.1e-1074', '-0b0.100001e-1074',
-              '4.94e-308', '-4.94e-308', '4.941e-308', '-4.941e-308',
+  @str1 =    ('0b0.1e-1074', '0b0.100001e-1074', '-0b0.1e-1074', '-0b0.100001e-1074',
+              '4.94e-324', '-4.94e-324', '4.941e-324', '-4.941e-324',
               '0b0.1e-1073', '0b0.101e-1073', '0b0.11e-1073', '-0b0.11e-1073',
               '0b0.11e-1072','0b0.1101e-1072', '0b0.111e-1072',
               '0b0.101e-1071', '0b0.10101e-1071', '0b0.1011e-1071', '0b0.11101e-1071', '0b0.1101e-1071', '0b0.1111e-1071',);
 
-  @str2 = ('0', '0b0.1e-1073', '0', '-0b0.1e-1073',
-              '0', '0', '0b0.1e-1073', '-0b0.1e-1073',
+  @str2 =    ('0', '0b0.1e-1073', '0', '-0b0.1e-1073',
+              '0b0.1e-1073', '-0b0.1e-1073', '0b0.1e-1073', '-0b0.1e-1073',
               '0b0.1e-1073', '0b0.1e-1073', '0b0.1e-1072', '-0b0.1e-1072',
               '0b0.11e-1072', '0b0.11e-1072', '0b0.10e-1071',
               '0b0.101e-1071','0b0.101e-1071', '0b0.110e-1071', '0b0.111e-1071', '0b0.11e-1071', '0b0.1e-1070');
@@ -575,7 +577,7 @@ if(mant_dig() == 113) {
     my $y = nv_mpfr($str2[$i], 53);
     if($x ne $y ) {
       my $p = $str1[$i] =~ /0b/ ? 2 : 10;
-      warn "\nTesting _d_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p)), ": Got $x and $y\n";
+      warn "\nTesting _d_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p)), ": Got $x and $y for $str1[$i] and $str2[$i]\n";
       $ok = 0;
     }
   }
@@ -590,13 +592,13 @@ elsif(mant_dig() == 64) {
 
   Math::MPFR::Rmpfr_set_default_prec(53);
   my @str1 = ('0b0.1e-1074', '0b0.100001e-1074', '-0b0.1e-1074', '-0b0.100001e-1074',
-              '4.94e-308', '-4.94e-308', '4.941e-308', '-4.941e-308',
+              '4.94e-324', '-4.94e-324', '4.941e-324', '-4.941e-324',
               '0b0.1e-1073', '0b0.101e-1073', '0b0.11e-1073', '-0b0.11e-1073',
               '0b0.11e-1072','0b0.1101e-1072', '0b0.111e-1072',
               '0b0.101e-1071', '0b0.10101e-1071', '0b0.1011e-1071', '0b0.11101e-1071', '0b0.1101e-1071', '0b0.1111e-1071',);
 
   my @str2 = ('0', '0b0.1e-1073', '-0.0', '-0b0.1e-1073',
-              '0b0.1e-1073', '0b0.1e-1073', '0b0.1e-1073', '-0b0.1e-1073',
+              '0b0.1e-1073', '-0b0.1e-1073', '0b0.1e-1073', '-0b0.1e-1073',
               '0b0.1e-1073', '0b0.1e-1073', '0b0.1e-1072', '-0b0.1e-1072',
               '0b0.11e-1072', '0b0.11e-1072', '0b0.10e-1071',
               '0b0.101e-1071','0b0.101e-1071', '0b0.110e-1071', '0b0.111e-1071', '0b0.11e-1071', '0b0.1e-1070');
@@ -609,7 +611,7 @@ elsif(mant_dig() == 64) {
     my $y = nv_mpfr($str2[$i], 53);
     if($x ne $y ) {
       my $p = $str1[$i] =~ /0b/ ? 2 : 10;
-      warn "\nTesting _d_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p)), ": Got $x and $y\n";
+      warn "\nTesting _d_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p)), ": Got $x and $y for $str1[$i] and $str2[$i]\n";
       $ok = 0;
     }
   }
@@ -623,7 +625,7 @@ elsif(mant_dig() == 64) {
               '0b0.101e-16491', '0b0.10101e-16491', '0b0.1011e-16491', '0b0.11101e-16491', '0b0.1101e-16491', '0b0.1111e-16491',);
 
   my @str2 = ('0', '0b0.1e-16493', '-0.0', '-0b0.1e-16493',
-              '0', '0', '0b0.1e-16493', '-0b0.1e-16493',
+              '0b0.1e-16493', '-0b0.1e-16493', '0b0.1e-16493', '-0b0.1e-16493',
               '0b0.1e-16493', '0b0.1e-16493', '0b0.1e-16492', '-0b0.1e-16492',
               '0b0.11e-16492', '0b0.11e-16492', '0b0.10e-16491',
               '0b0.101e-16491','0b0.101e-16491', '0b0.110e-16491', '0b0.111e-16491', '0b0.11e-16491', '0b0.1e-16490');
@@ -636,7 +638,7 @@ elsif(mant_dig() == 64) {
       my $y = nv_mpfr($str2[$i], 113);
       if($x ne $y ) {
         my $p = $str1[$i] =~ /0b/ ? 2 : 10;
-        warn "\nTesting _f128_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p)), ": Got $x and $y\n";
+        warn "\nTesting _f128_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p)), ": Got $x and $y for $str1[$i] and $str2[$i]\n";
         $ok = 0;
       }
     }
@@ -675,7 +677,7 @@ elsif(mant_dig() == 53) {
       warn "\nTesting _ld_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p1)),
                                    " ",  Math::NV::get_relevant_prec(Math::MPFR->new($str2[$i], $p2)),
                                    " $str1[$i] $str2[$i] ",
-                                   ": Got $x and $y\n";
+                                   ": Got $x and $y for $str1[$i] and $str2[$i]\n";
       $ok = 0;
     }
   }
@@ -702,7 +704,7 @@ elsif(mant_dig() == 53) {
       my $y = nv_mpfr($str2[$i], 113);
       if($x ne $y ) {
         my $p = $str1[$i] =~ /0b/ ? 2 : 10;
-        warn "\nTesting _f128_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p)), ": Got $x and $y\n";
+        warn "\nTesting _f128_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p)), ": Got $x and $y for $str1[$i] and $str2[$i]\n";
         $ok = 0;
       }
     }
@@ -716,7 +718,7 @@ elsif(mant_dig() == 53) {
 
 else { # double-double
   my @str1 = ('0b0.1e-1074', '0b0.100001e-1074', '-0b0.1e-1074', '-0b0.100001e-1074',
-              '4.94e-308', '-4.94e-308', '4.941e-308', '-4.941e-308',
+              '4.94e-324', '-4.94e-324', '4.941e-324', '-4.941e-324',
               '0b0.1e-1073', '0b0.101e-1073', '0b0.11e-1073', '-0b0.11e-1073',
               '0b0.11e-1072','0b0.1101e-1072', '0b0.111e-1072',
               '0b0.101e-1071', '0b0.10101e-1071', '0b0.1011e-1071', '0b0.11101e-1071', '0b0.1101e-1071', '0b0.1111e-1071',);
