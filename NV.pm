@@ -26,6 +26,10 @@ DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
     set_C set_mpfr
     )]);
 
+if($Math::MPFR::VERSION < 4.03) {
+   die " Math-MPFR version needs to be 4.03 or later\nThis only Math-MPFR-$Math::MPFR::VERSION\n";
+}
+
 ## normal min values ##
 # double     : (2 ** - 1022) : 0.1E-1021  : 2.2250738585072014e-308
 # long double: (2 ** -16382) : 0.1E-16381 : 3.36210314311209350626e-4932
