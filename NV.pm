@@ -73,6 +73,13 @@ if($Math::MPFR::VERSION < 4.03) {
                            '113MIN' => $Math::NV::FLT128_DENORM_MIN_MIN,
                            );
 
+if(Math::MPFR::_ld_subnormal_bug()) {
+  $Math::NV::_ld_subnormal_bug = 1;
+}
+else {
+  $Math::NV::_ld_subnormal_bug = 0;
+}
+
 # With mpfr-3.1.5 and earlier, the ternary value returned
 # by mpfr_strtofr is unreliable - thereby making that function
 # unusable with mpfr_subnormalize.
