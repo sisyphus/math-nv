@@ -57,48 +57,53 @@ $exponent = $Config{nvtype} eq 'double' ? '-308' : '-4932';
 # Check also that that the hex dump of $nv
 # matches the hex dump returned by nv_mpfr($str)
 
-for my $count(1 .. 10000, 200000 .. 340000) {
+unless($Math::NV::_ld_subnormal_bug && $Config{nvtype} eq 'long double') {
+  for my $count(1 .. 10000, 200000 .. 340000) {
 
-  my $str = sprintf "%06d", $count;
-  substr($str, 1, 0, '.');
-  $str .= "e$exponent";
+    my $str = sprintf "%06d", $count;
+    substr($str, 1, 0, '.');
+    $str .= "e$exponent";
 
-  Math::MPFR::Rmpfr_set_str($check, $str, 10, 0);
+    Math::MPFR::Rmpfr_set_str($check, $str, 10, 0);
+    my $nv = Math::MPFR::Rmpfr_get_NV($check, 0);
 
-  my $nv = Math::MPFR::Rmpfr_get_NV($check, 0);
-
-  if($nv != set_mpfr($str)) {
-    warn "\n$nv != ", set_mpfr($str), " for $str\n";
-    if($] >= '5.022') {
-      warn "The former is: ", sprintf("%a\n", $nv);
-      warn "The latter is: ", sprintf "%a\n", set_mpfr($str);
+    if($nv != set_mpfr($str)) {
+      warn "\n$nv != ", set_mpfr($str), " for $str\n";
+      if($] >= '5.022') {
+        warn "The former is: ", sprintf("%a\n", $nv);
+        warn "The latter is: ", sprintf "%a\n", set_mpfr($str);
+      }
+      $ok = 0;
+      last;
     }
-    $ok = 0;
-    last;
-  }
 
-  my $out1 = scalar(reverse(unpack("h*", pack("F<", $nv))));
+    my $out1 = scalar(reverse(unpack("h*", pack("F<", $nv))));
 
-  my $out2;
-  my $out = nv_mpfr($str);
-
-  if(mant_dig() == 106) { # If NV is a double-double
-    my @t = @$out;
-    $out2 = $t[0] . $t[1];
-  }
-  else {$out2 = $out}
-
-  unless($out1 eq $out2) {
-    warn "For $str:\n $out1 ne $out2\n";
-    if($] >= '5.022') {
-      warn "The former is: ", sprintf("%a\n", $nv), sprintf("%.16e\n", $nv);
-      warn "The latter is: ", sprintf "%a\n", unpack("F<", pack "h*", scalar reverse $out2);
+    my $out2;
+    my $out = nv_mpfr($str);
+    if(mant_dig() == 106) { # If NV is a double-double
+      my @t = @$out;
+      $out2 = $t[0] . $t[1];
     }
-    $ok = 0;
-    last;
-  }
+    else {$out2 = $out}
 
+    unless($out1 eq $out2) {
+      warn "For $str:\n $out1 ne $out2\n";
+      if($] >= '5.022') {
+        warn "The former is: ", sprintf("%a\n", $nv), sprintf("%.16e\n", $nv);
+        warn "The latter is: ", sprintf "%a\n", unpack("F<", pack "h*", scalar reverse $out2);
+      }
+      $ok = 0;
+     last;
+    }
+  }
 }
+else {
+  warn "\n Skipping test 1 - Your version of mpfr (", Math::MPFR::MPFR_VERSION_STRING(), ")",
+       "\n is buggy wrt mpfr_get_ld() and subnormal values.\n",
+       " Consider upgrading mpfr to at least version 3.1.5\n";
+}
+
 
 $Math::NV::no_warn = 2;
 
@@ -120,44 +125,50 @@ $ok = 1;
 # confident that is_eq_mpfr($str) assigns the
 # same value as nv_mpfr($str)
 
-for my $count(1 .. 10000, 200000 .. 340000) {
+unless($Math::NV::_ld_subnormal_bug && $Config{nvtype} eq 'long double') {
+  for my $count(1 .. 10000, 200000 .. 340000) {
 
-  my $str = sprintf "%06d", $count;
-  substr($str, 1, 0, '.');
-  $str .= "e$exponent";
+    my $str = sprintf "%06d", $count;
+    substr($str, 1, 0, '.');
+    $str .= "e$exponent";
 
-  my $str_copy = $str;
-  my $perl_nv = $str_copy + 0;
-  my $out;
+    my $str_copy = $str;
+    my $perl_nv = $str_copy + 0;
+    my $out;
 
-  if(mant_dig() == 106) { # If NV is a double-double
-    my $ret = nv_mpfr($str);
-    my @t = @$ret;
-    my $s = $t[0] . $t[1];
-    $out = unpack("F<", pack "h*", scalar reverse $s);
-  }
-  else { $out = unpack("F<", pack "h*", scalar reverse nv_mpfr($str));}
-
-  if($out == $perl_nv && !is_eq_mpfr($str)) {
-    warn "For $str:\nperl and nv_mpfr() agree, but is_eq_mpfr($str) returns false\n";
-    if($] >= '5.022') {
-      warn "Perl says that $str evaluates to: ", sprintf "%a\n", $perl_nv;
-      warn "nv_mpfr() says that $str evaluates to: ", sprintf "%a\n", $out;
+    if(mant_dig() == 106) { # If NV is a double-double
+      my $ret = nv_mpfr($str);
+      my @t = @$ret;
+      my $s = $t[0] . $t[1];
+      $out = unpack("F<", pack "h*", scalar reverse $s);
     }
-    $ok = 0;
-    last;
-  }
+    else { $out = unpack("F<", pack "h*", scalar reverse nv_mpfr($str));}
 
-  if($out != $perl_nv  && is_eq_mpfr($str)) {
-    warn "For $str:\nperl and nv_mpfr() disagree, but is_eq_mpfr($str) returns true\n";
-    if($] >= '5.022') {
-      warn "Perl says that $str evaluates to: ", sprintf "%a\n", $perl_nv;
-      warn "nv_mpfr() says that $str evaluates to: ", sprintf "%a\n", $out;
+    if($out == $perl_nv && !is_eq_mpfr($str)) {
+      warn "For $str:\nperl and nv_mpfr() agree, but is_eq_mpfr($str) returns false\n";
+      if($] >= '5.022') {
+        warn "Perl says that $str evaluates to: ", sprintf "%a\n", $perl_nv;
+        warn "nv_mpfr() says that $str evaluates to: ", sprintf "%a\n", $out;
+      }
+      $ok = 0;
+      last;
     }
-    $ok = 0;
-    last;
-  }
 
+    if($out != $perl_nv  && is_eq_mpfr($str)) {
+      warn "For $str:\nperl and nv_mpfr() disagree, but is_eq_mpfr($str) returns true\n";
+      if($] >= '5.022') {
+        warn "Perl says that $str evaluates to: ", sprintf "%a\n", $perl_nv;
+        warn "nv_mpfr() says that $str evaluates to: ", sprintf "%a\n", $out;
+      }
+      $ok = 0;
+      last;
+    }
+  }
+}
+else {
+  warn "\n Skipping test 2 - Your version of mpfr (", Math::MPFR::MPFR_VERSION_STRING(), ")",
+       "\n is buggy wrt mpfr_get_ld() and subnormal values.\n",
+       " Consider upgrading mpfr to at least version 3.1.5\n";
 }
 
 if($ok) {print "ok 2\n"}
@@ -312,18 +323,25 @@ elsif(mant_dig() == 64) {
   my $len = scalar(@str1);
   die "size mismatch" if @str1 != @str2;
 
-  for(my $i = 0; $i < $len; $i++) {
-    if(set_mpfr($str1[$i]) != set_mpfr($str2[$i])) {
-      warn "\nIn set_mpfr(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": $str1[$i] != $str2[$i]\n";
-      $ok = 0;
+  if(!$Math::NV::_ld_subnormal_bug) {
+    for(my $i = 0; $i < $len; $i++) {
+      if(set_mpfr($str1[$i]) != set_mpfr($str2[$i])) {
+        warn "\nIn set_mpfr(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": $str1[$i] != $str2[$i]\n";
+        $ok = 0;
+      }
+    }
+
+    for(my $i = 0; $i < $len; $i++) {
+      if(nv_mpfr($str1[$i]) ne nv_mpfr($str2[$i])) {
+        warn "\nIn nv_mpfr(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": $str1[$i] ne $str2[$i]\n";
+        $ok = 0;
+      }
     }
   }
-
-  for(my $i = 0; $i < $len; $i++) {
-    if(nv_mpfr($str1[$i]) ne nv_mpfr($str2[$i])) {
-      warn "\nIn nv_mpfr(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": $str1[$i] ne $str2[$i]\n";
-      $ok = 0;
-    }
+  else {
+    warn "\n Skipping test 5 - Your version of mpfr (", Math::MPFR::MPFR_VERSION_STRING(), ")",
+         "\n is buggy wrt mpfr_get_ld() and subnormal values.\n",
+         " Consider upgrading mpfr to at least version 3.1.5\n";
   }
 }
 
@@ -456,27 +474,35 @@ $ok = 1;
 # in _ld_bytes().
 
 if($have_ld_bytes) {
-  for my $count(1 .. 10000, 200000 .. 340000) {
+  if(!$Math::NV::_ld_subnormal_bug) {
+    for my $count(1 .. 10000, 200000 .. 340000) {
 
-    my $str = sprintf "%06d", $count;
-    substr($str, 1, 0, '.');
-    $str .= "e-4932";
+      my $str = sprintf "%06d", $count;
+      substr($str, 1, 0, '.');
+      $str .= "e-4932";
 
-    my $out1 = nv_mpfr($str, Math::MPFR::LDBL_MANT_DIG);
-    my $out2 = join '', Math::MPFR::_ld_bytes($str, Math::MPFR::LDBL_MANT_DIG);
+      my $out1 = nv_mpfr($str, Math::MPFR::LDBL_MANT_DIG);
+      my $out2 = join '', Math::MPFR::_ld_bytes($str, Math::MPFR::LDBL_MANT_DIG);
 
-    if($out1 ne $out2 && $out1 ne ('0000'. $out2) && $out1 ne ('000000000000'. $out2)) {
-      warn "\nIn _ld_bytes: $out1 ne $out2 for $str\n";
-      $ok = 0;
-      last;
+      if($out1 ne $out2 && $out1 ne ('0000'. $out2) && $out1 ne ('000000000000'. $out2)) {
+        warn "\nIn _ld_bytes: $out1 ne $out2 for $str\n";
+        $ok = 0;
+        last;
+      }
     }
-  }
 
-  if($ok) {print "ok 7\n"}
-  else {print "not ok 7\n"}
+    if($ok) {print "ok 7\n"}
+    else {print "not ok 7\n"}
+  }
+  else {
+    warn "\n Skipping test 7 - Your version of mpfr (", Math::MPFR::MPFR_VERSION_STRING(), ") is buggy\n",
+         " wrt mpfr_get_ld() and subnormal values.\n",
+         " Consider upgrading mpfr to at least version 3.1.5\n";
+    print "ok 7\n";
+  }
 }
 else {
-  warn "\n skipping test 7 - no Math::MPFR::_ld_bytes()\n$no_ld_bytes\n";
+  warn "\n Skipping test 7 - no Math::MPFR::_ld_bytes()\n$no_ld_bytes\n";
   print "ok 7\n";
 }
 
@@ -512,7 +538,7 @@ if($have_f128_bytes) {
   else {print "not ok 8\n"}
 }
 else {
-  warn "\n skipping test - no Math::MPFR::_f128_bytes()\n$no_f128_bytes\n";
+  warn "\n Skipping test 8 - no Math::MPFR::_f128_bytes()\n$no_f128_bytes\n";
   print "ok 8\n";
 }
 
@@ -657,29 +683,39 @@ elsif(mant_dig() == 53) {
               '3.64e-4951', '-3.64e-4951', '3.65e-4951', '-3.65e-4951',
               '0b0.1e-16444', '0b0.101e-16444', '0b0.11e-16444', '-0b0.11e-16444',
               '0b0.11e-16443','0b0.1101e-16443', '0b0.111e-16443',
-              '0b0.101e-16442', '0b0.10101e-16442', '0b0.1011e-16442', '0b0.11101e-16442', '0b0.1101e-16442', '0b0.1111e-16442',);
+              '0b0.101e-16442', '0b0.10101e-16442', '0b0.1011e-16442', '0b0.11101e-16442', '0b0.1101e-16442', '0b0.1111e-16442',
+              '0.00002e-4932',);
 
   my @str2 = ('0', '0b0.1e-16444', '-0.0', '-0b0.1e-16444',
               '0b0.1e-16444', '-0b0.1e-16444', '0b0.1e-16444', '-0b0.1e-16444',
               '0b0.1e-16444', '0b0.1e-16444', '0b0.1e-16443', '-0b0.1e-16443',
               '0b0.11e-16443', '0b0.11e-16443', '0b0.10e-16442',
-              '0b0.101e-16442','0b0.101e-16442', '0b0.110e-16442', '0b0.111e-16442', '0b0.11e-16442', '0b0.1e-16441');
+              '0b0.101e-16442','0b0.101e-16442', '0b0.110e-16442', '0b0.111e-16442', '0b0.11e-16442', '0b0.1e-16441',
+              '0.00002e-4932',);
 
   my $len = scalar(@str1);
   die "size mismatch" if @str1 != @str2;
 
-  for(my $i = 0; $i < $len; $i++) {
-    my $x = nv_mpfr($str1[$i], 64);
-    my $y = nv_mpfr($str2[$i], 64);
-    if($x ne $y ) {
-      my $p1 = $str1[$i] =~ /0b/ ? 2 : 10;
-      my $p2 = $str2[$i] =~ /0b/ ? 2 : 10;
-      warn "\nTesting _ld_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p1)),
-                                   " ",  Math::NV::get_relevant_prec(Math::MPFR->new($str2[$i], $p2)),
-                                   " $str1[$i] $str2[$i] ",
-                                   ": Got $x and $y for $str1[$i] and $str2[$i]\n";
-      $ok = 0;
+  if(!$Math::NV::_ld_subnormal_bug) {
+
+    for(my $i = 0; $i < $len; $i++) {
+      my $x = nv_mpfr($str1[$i], 64);
+      my $y = nv_mpfr($str2[$i], 64);
+      if($x ne $y ) {
+        my $p1 = $str1[$i] =~ /0b/ ? 2 : 10;
+        my $p2 = $str2[$i] =~ /0b/ ? 2 : 10;
+        warn "\nTesting _ld_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p1)),
+                                     " ",  Math::NV::get_relevant_prec(Math::MPFR->new($str2[$i], $p2)),
+                                     " $str1[$i] $str2[$i] ",
+                                     ": Got $x and $y for $str1[$i] and $str2[$i]\n";
+        $ok = 0;
+      }
     }
+  }
+  else {
+    warn "\n Skipping _ld_bytes() tests in test 8 - Your version of mpfr (", Math::MPFR::MPFR_VERSION_STRING(), ")",
+         "\n is buggy wrt mpfr_get_ld() and subnormal values.\n",
+         " Consider upgrading mpfr to at least version 3.1.5\n";
   }
 
   if($have_f128_bytes) {
