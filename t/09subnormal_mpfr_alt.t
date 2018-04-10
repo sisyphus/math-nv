@@ -31,6 +31,11 @@ $Math::NV::mpfr_strtofr_bug = 1; # Force use of workaround routine.
 warn "\nThese tests can take a few moments to complete\n";
 
 my($have_ld_bytes, $no_ld_bytes) = (0, '');
+
+# The following eval{} evokes "You probably want to call Math::MPFR::_dd_bytes"
+# warning on double-double builds, before setting $@ to "2nd arg to
+# Math::MPFR::_ld_bytes must be 64 or 113".
+
 eval{Math::MPFR::_ld_bytes('1e-2', Math::MPFR::LDBL_MANT_DIG)};
 unless($@) {
   $have_ld_bytes = 1;
@@ -405,7 +410,7 @@ else { # double-double
               '0b0.101e-1071', '0b0.10101e-1071', '0b0.1011e-1071', '0b0.11101e-1071', '0b0.1101e-1071', '0b0.1111e-1071',);
 
   my @str2 = ('0', '0b0.1e-1073', '-0.0', '-0b0.1e-1073',
-              '0', '0', '0b0.1e-1073', '-0b0.1e-1073',
+              '0b0.1e-1073', '-0b0.1e-1073', '0b0.1e-1073', '-0b0.1e-1073',
               '0b0.1e-1073', '0b0.1e-1073', '0b0.1e-1072', '-0b0.1e-1072',
               '0b0.11e-1072', '0b0.11e-1072', '0b0.10e-1071',
               '0b0.101e-1071','0b0.101e-1071', '0b0.110e-1071', '0b0.111e-1071', '0b0.11e-1071', '0b0.1e-1070');
@@ -697,21 +702,27 @@ elsif(mant_dig() == 53) {
   die "size mismatch" if @str1 != @str2;
 
   if(!$Math::NV::_ld_subnormal_bug) {
-
-    for(my $i = 0; $i < $len; $i++) {
-      my $x = nv_mpfr($str1[$i], 64);
-      my $y = nv_mpfr($str2[$i], 64);
-      if($x ne $y ) {
-        my $p1 = $str1[$i] =~ /0b/ ? 2 : 10;
-        my $p2 = $str2[$i] =~ /0b/ ? 2 : 10;
-        warn "\nTesting _ld_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p1)),
-                                     " ",  Math::NV::get_relevant_prec(Math::MPFR->new($str2[$i], $p2)),
-                                     " $str1[$i] $str2[$i] ",
-                                     ": Got $x and $y for $str1[$i] and $str2[$i]\n";
-        $ok = 0;
+    if($have_ld_bytes) {
+      for(my $i = 0; $i < $len; $i++) {
+        my $x = nv_mpfr($str1[$i], 64);
+        my $y = nv_mpfr($str2[$i], 64);
+        if($x ne $y ) {
+          my $p1 = $str1[$i] =~ /0b/ ? 2 : 10;
+          my $p2 = $str2[$i] =~ /0b/ ? 2 : 10;
+          warn "\nTesting _ld_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], $p1)),
+                                       " ",  Math::NV::get_relevant_prec(Math::MPFR->new($str2[$i], $p2)),
+                                       " $str1[$i] $str2[$i] ",
+                                       ": Got $x and $y for $str1[$i] and $str2[$i]\n";
+          $ok = 0;
+        }
       }
     }
+    else {
+      warn "\n Skipping _ld_bytes tests - not available\n$no_ld_bytes\n";
+    }
   }
+
+
   else {
     warn "\n Skipping _ld_bytes() tests in test 8 - Your version of mpfr (", Math::MPFR::MPFR_VERSION_STRING(), ")",
          "\n is buggy wrt mpfr_get_ld() and subnormal values.\n",
@@ -760,7 +771,7 @@ else { # double-double
               '0b0.101e-1071', '0b0.10101e-1071', '0b0.1011e-1071', '0b0.11101e-1071', '0b0.1101e-1071', '0b0.1111e-1071',);
 
   my @str2 = ('0', '0b0.1e-1073', '-0.0', '-0b0.1e-1073',
-              '0', '-0.0', '0b0.1e-1073', '-0b0.1e-1073',
+              '0b0.1e-1073', '-0b0.1e-1073', '0b0.1e-1073', '-0b0.1e-1073',
               '0b0.1e-1073', '0b0.1e-1073', '0b0.1e-1072', '-0b0.1e-1072',
               '0b0.11e-1072', '0b0.11e-1072', '0b0.10e-1071',
               '0b0.101e-1071','0b0.101e-1071', '0b0.110e-1071', '0b0.111e-1071', '0b0.11e-1071', '0b0.1e-1070');
