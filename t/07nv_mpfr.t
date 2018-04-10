@@ -91,12 +91,18 @@ if(106 == mant_dig()) {
 }
 
 else {
-  $val = nv_mpfr('1e+127', 64);
+  eval{$val = nv_mpfr('1e+127', 64);};
 
-  if($val =~ /^(0+)?41a4ec5d3fa8ce427b00$/i) {print "ok 9\n"}
+  if($@) {
+    warn "\n Skipping test 9 as _ld_bytes() is unsupported\n";
+    print "ok 9\n";
+  }
   else {
-    warn "expected \"41a4ec5d3fa8ce427b00\", got ", lc($val), "\n";
-    print "not ok 9\n";
+    if($val =~ /^(0+)?41a4ec5d3fa8ce427b00$/i) {print "ok 9\n"}
+    else {
+      warn "expected \"41a4ec5d3fa8ce427b00\", got ", lc($val), "\n";
+      print "not ok 9\n";
+    }
   }
 
   eval {$val = nv_mpfr('1e+127', 113);};
