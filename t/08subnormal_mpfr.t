@@ -13,6 +13,17 @@ use warnings;
 use Math::NV qw(:all);
 use Config;
 
+my ($have_atonv, $ws);
+
+$have_atonv = Math::MPFR::MPFR_VERSION() <= 196869 ? 0 : 1;
+
+if($have_atonv) {
+  $ws = Math::MPFR::Rmpfr_init2($Math::MPFR::BITS);
+  warn "\n Math::MPFR::atonv() tests enabled\n";
+}
+else {  warn "\n Math::MPFR::atonv() tests disabled\n"}
+
+
 my $t = 9;
 
 print "1..$t\n";
@@ -51,6 +62,8 @@ $exponent = $Config{nvtype} eq 'double' ? '-308' : '-4932';
 # Set $str to $check (500 bits of precision)
 # Check that the NV ($nv) retrieved from $check
 # is the same as the NV returned by set_mpfr($str)
+# and check that set_mpfr() and Math::MPFR::atonv()
+# return the same value.
 # Check also that that the hex dump of $nv
 # matches the hex dump returned by nv_mpfr($str)
 
@@ -64,14 +77,28 @@ unless($Math::NV::_ld_subnormal_bug && $Config{nvtype} eq 'long double') {
     Math::MPFR::Rmpfr_set_str($check, $str, 10, 0);
     my $nv = Math::MPFR::Rmpfr_get_NV($check, 0);
 
-    if($nv != set_mpfr($str)) {
-      warn "\n$nv != ", set_mpfr($str), " for $str\n";
+    my $set = set_mpfr($str);
+
+    if($nv != $set) {
+      warn "\n$nv != $set for $str\n";
       if($] >= '5.022') {
         warn "The former is: ", sprintf("%a\n", $nv);
         warn "The latter is: ", sprintf "%a\n", set_mpfr($str);
       }
       $ok = 0;
       last;
+    }
+
+    if($have_atonv) {
+      if($set != Math::MPFR::atonv($ws, $str)) {
+        warn "\n$set != ", Math::MPFR::atonv($ws, $str), " for $str\n";
+        if($] >= '5.022') {
+          warn "The former is: ", sprintf("%a\n", $set);
+          warn "The latter is: ", sprintf "%a\n", Math::MPFR::atonv($ws, $str);
+        }
+        $ok = 0;
+        last;
+      }
     }
 
     my $out1 = scalar(reverse(unpack("h*", pack("F<", $nv))));
@@ -219,8 +246,8 @@ $ok = 1;
 ########### Test 3 ends
 ########### Test 4 starts
 
-# Checks that Math::MPFR::_dd_bytes($str, 106)
-# with nv_mpfr($str, 106)
+# Checks Math::MPFR::_dd_bytes($str, 106)
+# against nv_mpfr($str, 106)
 
 for my $count(1 .. 10000, 200000 .. 340000) {
 
@@ -256,7 +283,8 @@ $ok = 1;
 ########### Test 5 starts
 
 # Checks that a few select subnormals (and smaller)
-# are evaluated correctly by set_mpfr() and nv_mpfr().
+# are evaluated correctly by set_mpfr(), nv_mpfr()
+# and Math::MPFR::atonv();
 # Specifically, these values are either 0, 1, 2 or 3
 # bit subnormals
 
@@ -287,6 +315,15 @@ if(mant_dig() == 113) {
     if(set_mpfr($str1[$i]) != set_mpfr($str2[$i])) {
       warn "\nIn set_mpfr(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": $str1[$i] != $str2[$i]\n";
       $ok = 0;
+    }
+  }
+
+  if($have_atonv) {
+    for(my $i = 0; $i < $len; $i++) {
+      if(Math::MPFR::atonv($ws, $str1[$i]) != Math::MPFR::atonv($ws, $str2[$i])) {
+        warn "\nIn Math::MPFR::atonv(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": $str1[$i] != $str2[$i]\n";
+        $ok = 0;
+      }
     }
   }
 
@@ -327,6 +364,15 @@ elsif(mant_dig() == 64) {
         $ok = 0;
       }
     }
+
+  if($have_atonv) {
+    for(my $i = 0; $i < $len; $i++) {
+      if(Math::MPFR::atonv($ws, $str1[$i]) != Math::MPFR::atonv($ws, $str2[$i])) {
+        warn "\nIn Math::MPFR::atonv(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": $str1[$i] != $str2[$i]\n";
+        $ok = 0;
+      }
+    }
+  }
 
     for(my $i = 0; $i < $len; $i++) {
       if(nv_mpfr($str1[$i]) ne nv_mpfr($str2[$i])) {
@@ -378,6 +424,15 @@ elsif(mant_dig() == 53) {
     }
   }
 
+  if($have_atonv) {
+    for(my $i = 0; $i < $len; $i++) {
+      if(Math::MPFR::atonv($ws, $str1[$i]) != Math::MPFR::atonv($ws, $str2[$i])) {
+        warn "\nIn Math::MPFR::atonv(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": $str1[$i] != $str2[$i]\n";
+        $ok = 0;
+      }
+    }
+  }
+
   for(my $i = 0; $i < $len; $i++) {
     my $x = nv_mpfr($str1[$i]);
     my $arref = nv_mpfr($str2[$i], 106);
@@ -417,6 +472,15 @@ else { # double-double
     if($x[0] ne $$arref[0] || $$arref[1] =~ /[^0]/ || $x[1] =~ /[^0]/) {
       warn "\nTesting _d_bytes(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": Got $x and @$arref\n";
       $ok = 0;
+    }
+  }
+
+  if($have_atonv) {
+    for(my $i = 0; $i < $len; $i++) {
+      if(Math::MPFR::atonv($ws, $str1[$i]) != Math::MPFR::atonv($ws, $str2[$i])) {
+        warn "\nIn Math::MPFR::atonv(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": $str1[$i] != $str2[$i]\n";
+        $ok = 0;
+      }
     }
   }
 }
