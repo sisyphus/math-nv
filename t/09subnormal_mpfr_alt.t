@@ -222,9 +222,11 @@ $ok = 1;
 
 for my $count(1 .. 10000, 150000 .. 222507) {
 
+  my $exp =  308 + int(rand(16));
+
   my $str = sprintf "%06d", $count;
   substr($str, 1, 0, '.');
-  $str .= "e-308";
+  $str .= "e-$exp";
 
   my $out1 = nv_mpfr($str, 53);
   my $out2 = nv_mpfr($str, 106);
