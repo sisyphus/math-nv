@@ -9,7 +9,7 @@ require Exporter;
 *import = \&Exporter::import;
 require DynaLoader;
 
-$Math::NV::VERSION = '2.0';
+$Math::NV::VERSION = '2.01';
 
 DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
 
@@ -27,7 +27,7 @@ DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
     )]);
 
 if($Math::MPFR::VERSION < 4.03) {
-   die " Math-MPFR version needs to be 4.03 or later\nThis only Math-MPFR-$Math::MPFR::VERSION\n";
+   die " Math-MPFR version needs to be 4.03 or later\n This is only Math-MPFR-$Math::MPFR::VERSION\n";
 }
 
 ## normal min values ##
