@@ -30,6 +30,11 @@ if($Math::MPFR::VERSION < 4.03) {
    die " Math-MPFR version needs to be 4.03 or later\n This is only Math-MPFR-$Math::MPFR::VERSION\n";
 }
 
+## max NV finite values ##
+# double    : 1.7976931348623157e+308
+#long double: 1.18973149535723176502e4932
+# __float128: 1.18973149535723176508575932662800702e4932
+
 ## normal min values ##
 # double     : (2 ** - 1022) : 0.1E-1021  : 2.2250738585072014e-308
 # long double: (2 ** -16382) : 0.1E-16381 : 3.36210314311209350626e-4932
