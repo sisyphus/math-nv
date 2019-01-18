@@ -545,6 +545,12 @@ if($have_ld_bytes) {
       $str .= "e-4932";
 
       my $out1 = nv_mpfr($str, Math::MPFR::LDBL_MANT_DIG);
+
+      ## Ignore irrelevant bytes ##
+      if(Math::MPFR::LDBL_MANT_DIG == 64) {
+        $out1 = substr($out1, -20, 20);
+      }
+
       my $out2 = join '', Math::MPFR::_ld_bytes($str, Math::MPFR::LDBL_MANT_DIG);
 
       if($out1 ne $out2 && $out1 ne ('0000'. $out2) && $out1 ne ('000000000000'. $out2)) {
