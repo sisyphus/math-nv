@@ -26,8 +26,8 @@ DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
     set_C set_mpfr
     )]);
 
-if($Math::MPFR::VERSION < 4.03) {
-   die " Math-MPFR version needs to be 4.03 or later\n This is only Math-MPFR-$Math::MPFR::VERSION\n";
+if($Math::MPFR::VERSION < 4.07) {
+   die " Math-MPFR version needs to be 4.07 or later\n This is only Math-MPFR-$Math::MPFR::VERSION\n";
 }
 
 ## max NV finite values ##
