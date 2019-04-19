@@ -363,11 +363,14 @@ int _looks_like_number(pTHX_ SV * x) {
 }
 
 SV * _set_C (pTHX_ char * str) {
-#ifdef Perl_strtod
- return newSVnv(Perl_strtod(str, NULL));
-#else
- warn("'Perl_strtod' not defined");
- return &PL_sv_undef;
+#ifdef NV_IS_FLOAT128
+ return newSVnv(strtoflt128(str, NULL));
+#endif
+#ifdef NV_IS_LONG_DOUBLE
+ return newSVnv(strtold(str, NULL));
+#endif
+#ifdef NV_IS_DOUBLE
+ return newSVnv(strtod(str, NULL));
 #endif
 }
 
