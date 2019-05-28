@@ -1,15 +1,11 @@
 
-# NV.pm will always load Math::MPFR iff it's available.
-# Math::NV::no_mpfr will be set to 0 iff Math::MPFR loaded successfully.
-# Otherwise $Math::NV::no_mpfr will be set to the error message that the
-# attempt to load Math::MPFR produced.
 
 use strict;
 use warnings;
 use Math::NV qw(:all);
 
 
-print "1..11\n";
+print "1..13\n";
 
 my $arb = 1021;
 Math::MPFR::Rmpfr_set_default_prec($arb);
@@ -129,5 +125,48 @@ else {
   print "not ok 11\n";
 }
 
+eval { is_inexact('0.5') };
 
+if($Math::NV::mpfr_strtofr_bug && $@ && $@ =~ /is_inexact\(\) requires/) {
+  warn "\nskipping tests 12 & 13 - mpfr-3.1.6 or later is needed\n";
+  print "ok 12\n";
+  print "ok 13\n";
+}
+elsif($@) {
+  warn "\n\$\@: $@\n";
+  print "not ok 12\n";
+  print "not ok 13\n";
+}
+else {
+  my $ok = 1;
+
+  for('0.1', '0.01', '1.3', '0.7', '10.81') {
+    my $inex1 = is_inexact($_);
+    my $inex2 = is_inexact('-' . $_);
+
+    unless($inex1 && $inex2 && $inex1 == $inex2 * -1) {
+      warn "\nFor $_: $inex1 != $inex2 * -1\n";
+      $ok = 0;
+    }
+  }
+
+  if($ok) { print "ok 12\n" }
+  else { print "not ok 12\n" }
+
+  $ok = 1;
+
+  for('0.125', '0.625', '121.5', '0.75', '10.375') {
+    my $inex1 = is_inexact($_);
+    my $inex2 = is_inexact('-' . $_);
+
+    if($inex1 || $inex2) {
+      warn "\nFor $_: \$inex1 == $inex1 \$inex2 == $inex2\n";
+      $ok = 0;
+    }
+  }
+
+  if($ok) { print "ok 13\n" }
+  else { print "not ok 13\n" }
+
+}
 
