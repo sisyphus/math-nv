@@ -3,9 +3,10 @@
 use strict;
 use warnings;
 use Math::NV qw(:all);
+use Config;
 
 
-print "1..13\n";
+print "1..15\n";
 
 my $arb = 1021;
 Math::MPFR::Rmpfr_set_default_prec($arb);
@@ -129,13 +130,13 @@ eval { is_inexact('0.5') };
 
 if($Math::NV::mpfr_strtofr_bug && $@ && $@ =~ /is_inexact\(\) requires/) {
   warn "\nskipping tests 12 & 13 - mpfr-3.1.6 or later is needed\n";
-  print "ok 12\n";
-  print "ok 13\n";
+  for(12 .. 15) { print "ok $_\n" }
+
 }
 elsif($@) {
   warn "\n\$\@: $@\n";
-  print "not ok 12\n";
-  print "not ok 13\n";
+  for(12 .. 15) { print "ok $_\n" }
+
 }
 else {
   my $ok = 1;
@@ -168,5 +169,41 @@ else {
   if($ok) { print "ok 13\n" }
   else { print "not ok 13\n" }
 
+  $ok = 1;
+
+  for('nan', '0', 'inf', '-inf') {
+    my $inex = is_inexact($_);
+    if($inex) {
+      warn "\nis_inexact($_): expected 0, got $inex\n";
+      $ok = 0;
+    }
+
+  }
+
+  if($ok) { print "ok 14\n" }
+  else { print "not ok 14\n" }
+
+  my @res;
+
+  for('1e5000', '-1e5000', '1e-5000', '-1e-5000') {
+    push @res, is_inexact($_);
+  }
+
+  my $got = join '|', @res;
+  my $expected = '1|-1|-1|1';
+
+  if($got eq $expected) { print "ok 15\n" }
+  else {
+    warn "\ngot     : $got\nexpected: $expected\n";
+    print "not ok 15\n";
+  }
 }
+
+
+__END__
+
+For all builds:
+
+1e-5000 should assign to an NV of zero - though will be non-zero when assigned to a Math::MPFR object.
+1e+5000 should assign to an NV of infinity - though will be finite when assigned to a Math::MPFR object.
 
