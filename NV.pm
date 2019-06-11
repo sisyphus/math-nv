@@ -371,7 +371,7 @@ sub is_inexact {
   unless($Math::NV::no_warn & 1) {
     my $itsa = $_[0];
     $itsa = _itsa($itsa);  # make sure that $_[0] has POK flag set && all numeric flags unset
-    warn "Argument given to is_inexact() is $_itsa{$itsa}, not a string - probably not what you want"
+    warn "Argument given to is_inexact() is $_itsa{$itsa}, not a string - possibly not what you want"
     if $itsa != 4;
   }
 
@@ -382,11 +382,19 @@ sub is_inexact {
 
   my $inex = Rmpfr_strtofr($val, $_[0], 0, 0);
 
+  my $nv = atonv($_[0]);
+
+  # Special case handling required when $nv is zero or an infinity.
+  # $val could be finite, and yet $nv be an infinity.
+  # Or $val could be non-zero, and yet $nv be 0.
+
+  if($nv == 0 || ($nv / $nv != $nv / $nv)) {
+    return Rmpfr_cmp_NV($val, $nv) * -1;
+  }
+
   return $inex if $inex; # It's inexact.
 
-  my $nv = Rmpfr_get_NV($val, MPFR_RNDN);
-
-  return Rmpfr_cmp_NV($val, $nv);
+  return Rmpfr_cmp_NV($val, $nv) * -1;
 }
 
 sub set_C {
