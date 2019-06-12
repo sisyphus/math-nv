@@ -381,20 +381,12 @@ sub is_inexact {
   my $val = Rmpfr_init2($bits);
 
   my $inex = Rmpfr_strtofr($val, $_[0], 0, 0);
-
   my $nv = atonv($_[0]);
 
-  # Special case handling required when $nv is zero or an infinity.
-  # $val could be finite, and yet $nv be an infinity.
-  # Or $val could be non-zero, and yet $nv be 0.
+  my $cmp = Rmpfr_cmp_NV($val, $nv) * -1;
 
-  if($nv == 0 || ($nv / $nv != $nv / $nv)) {
-    return Rmpfr_cmp_NV($val, $nv) * -1;
-  }
-
-  return $inex if $inex; # It's inexact.
-
-  return Rmpfr_cmp_NV($val, $nv) * -1;
+  return $inex if !$cmp;
+  return $cmp;
 }
 
 sub set_C {
