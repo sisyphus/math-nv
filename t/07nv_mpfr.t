@@ -5,8 +5,9 @@ use warnings;
 use Math::NV qw(:all);
 use Config;
 
+my $tests = 17;
 
-print "1..15\n";
+print "1..$tests\n";
 
 my $arb = 1021;
 Math::MPFR::Rmpfr_set_default_prec($arb);
@@ -129,13 +130,15 @@ else {
 eval { is_inexact('0.5') };
 
 if($Math::NV::mpfr_strtofr_bug && $@ && $@ =~ /is_inexact\(\) requires/) {
-  warn "\nskipping tests 12 & 13 - mpfr-3.1.6 or later is needed\n";
-  for(12 .. 15) { print "ok $_\n" }
+  warn "\nskipping tests 12 to $tests - mpfr-3.1.6 or later is needed\n";
+  for(12 .. $tests) { print "ok $_\n" }
 
 }
 elsif($@) {
   warn "\n\$\@: $@\n";
-  for(12 .. 15) { print "ok $_\n" }
+  print "not ok 12\n";
+  warn "\nskipping tests 13 to $tests - test 12 failed\n";
+  for(13 .. $tests) { print "ok $_\n" }
 
 }
 else {
@@ -196,6 +199,29 @@ else {
   else {
     warn "\ngot     : $got\nexpected: $expected\n";
     print "not ok 15\n";
+  }
+
+  if(mant_dig() % 53 == 0) { # 53-bit or 106-bit (DoubleDouble) NVs only.
+    my $inex = is_inexact('4.9e-324');
+
+    if($inex == 1) { print "ok 16\n" }
+    else {
+      warn "\ngot: $inex\n\expected: 1\n";
+      print "not ok 16\n";
+    }
+
+    $inex = is_inexact('5e-324');
+
+    if($inex == -1) { print "ok 17\n" }
+    else {
+      warn "\ngot: $inex\n\expected: -1\n";
+      print "not ok 17\n";
+    }
+
+  }
+  else {
+    warn "\nSkipping tests 16 to $tests - nvtype is neither double nor doubledouble\n";
+    print "ok $_\n" for 16 .. $tests;
   }
 }
 
