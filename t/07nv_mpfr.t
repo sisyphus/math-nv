@@ -148,8 +148,8 @@ else {
     my $inex1 = is_inexact($_);
     my $inex2 = is_inexact('-' . $_);
 
-    unless($inex1 && $inex2 && $inex1 == $inex2 * -1) {
-      warn "\nFor $_: $inex1 != $inex2 * -1\n";
+    unless(($inex1 < 0 && $inex2 > 0) || ($inex1 > 0 && $inex2 < 0)) {
+      warn "\nFor $_: \$inex1: $inex1 \$inex2: $inex2\n";
       $ok = 0;
     }
   }
@@ -164,7 +164,7 @@ else {
     my $inex2 = is_inexact('-' . $_);
 
     if($inex1 || $inex2) {
-      warn "\nFor $_: \$inex1 == $inex1 \$inex2 == $inex2\n";
+      warn "\nFor $_: \$inex1: $inex1 \$inex2: $inex2\n";
       $ok = 0;
     }
   }
@@ -192,29 +192,28 @@ else {
     push @res, is_inexact($_);
   }
 
-  my $got = join '|', @res;
-  my $expected = '1|-1|-1|1';
+  if($res[0] <= 0 || $res[1] >= 0 || $res[2] >= 0 || $res[3] <= 0) { $ok = 0 }
 
-  if($got eq $expected) { print "ok 15\n" }
+  if($ok) { print "ok 15\n" }
   else {
-    warn "\ngot     : $got\nexpected: $expected\n";
+    warn "\n In test 15, \@res = @res\n";
     print "not ok 15\n";
   }
 
   if(mant_dig() % 53 == 0) { # 53-bit or 106-bit (DoubleDouble) NVs only.
     my $inex = is_inexact('4.9e-324');
 
-    if($inex == 1) { print "ok 16\n" }
+    if($inex > 0) { print "ok 16\n" }
     else {
-      warn "\ngot: $inex\n\expected: 1\n";
+      warn "\n in test 16, got $inex\n";
       print "not ok 16\n";
     }
 
     $inex = is_inexact('5e-324');
 
-    if($inex == -1) { print "ok 17\n" }
+    if($inex < 0) { print "ok 17\n" }
     else {
-      warn "\ngot: $inex\n\expected: -1\n";
+      warn "\n in test 17, got $inex\n";
       print "not ok 17\n";
     }
 
