@@ -1,4 +1,6 @@
 Revision history for Perl module Math::NV
+ 2.03
+
  2.02
     - Remove "Perl_strtod" from NV.xs.
     - Remove references to Perl_strtod from NV.pod.
