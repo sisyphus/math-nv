@@ -300,7 +300,7 @@ sub nv_mpfr {
   }
 
   if($bits == 64) {
-    my @bytes = Math::MPFR::_ld_bytes($_[0], 64);
+    my @bytes = Math::MPFR::_ld_bytes($_[0], 64); # handles subnormals
     return join('', @bytes);
   }
 
@@ -309,11 +309,11 @@ sub nv_mpfr {
     my $t;
     eval{$t = Math::MPFR::_have_IEEE_754_long_double();}; # needs Math-MPFR-3.33, perl-5.22.
     if(!$@ && $t) {
-      my @bytes = Math::MPFR::_ld_bytes($_[0], 113);
+      my @bytes = Math::MPFR::_ld_bytes($_[0], 113); # handles subnormals
       return join('', @bytes);
     }
     else { # assume __float128 (though that might not be the case)
-        my @bytes = Math::MPFR::_f128_bytes($_[0], 113);
+        my @bytes = Math::MPFR::_f128_bytes($_[0], 113); # handles subnormals
       return join('', @bytes);
     }
   }
