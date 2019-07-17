@@ -8,6 +8,11 @@
 # Smallest normal double is:
 # 2.2250738585072014e-308
 
+# '0.00132e-308' is a double value that needs to be subnormalized before calling Rmpfr_get_NV
+# '0.00024e-4932' is a long double value that needs to be subnormalized before calling Rmpfr_get_NV.
+# '0.00001e-4932' is a __float128 value that needs to be subnormalized before calling Rmpfr_get_NV.
+# Failure to subnormalize first will result in Rmpfr_get_NV returning a slightly incorrect NV.
+
 use strict;
 use warnings;
 use Math::NV qw(:all);
