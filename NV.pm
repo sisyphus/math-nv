@@ -412,7 +412,8 @@ sub _dd_obj {
   return ($msd, Rmpfr_get_d($obj, 0));
 }
 
-# use _subnormalize instead if MPFR_VERSION > 196869
+# Optionally (ie preferably) use _subnormalize instead
+# if MPFR_VERSION > 196869 (MPFR_STRTOFR_BUG == 0).
 sub get_subnormal {
 
   my($str, $prec, $bits) = (shift, shift, shift);
@@ -457,7 +458,8 @@ sub get_relevant_prec {
 
 }
 
-# use get_subnormal instead if MPFR_VERSION <= 196869
+# Must use get_subnormal instead if MPFR_VERSION <= 196869
+# because mpfr_strtofr is buggy (MPFR_STRTOFR_BUG == 1).
 sub _subnormalize {
   # Called as: $val = _subnormalize($string, $bits);
   # mpfr_subnormalize(fr, inex, MPFR_RNDN);
