@@ -5,6 +5,13 @@ use strict;
 use Math::MPFR qw(:mpfr);
 use 5.010;
 
+# With mpfr-3.1.5 and earlier, the ternary value returned
+# by mpfr_strtofr is unreliable - thereby making that function
+# unusable with mpfr_subnormalize.
+use constant MPFR_STRTOFR_BUG => MPFR_VERSION() <= 196869 ? 1 : 0;
+
+use constant LD_SUBNORMAL_BUG => Math::MPFR::_ld_subnormal_bug() ? 1 : 0;
+
 require Exporter;
 *import = \&Exporter::import;
 require DynaLoader;
@@ -18,12 +25,14 @@ DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
     nv nv_type mant_dig ld2binary ld_str2binary is_eq
     bin2val Cprintf Csprintf nv_mpfr is_eq_mpfr
     set_C set_mpfr is_inexact
+    MPFR_STRTOFR_BUG LD_SUBNORMAL_BUG
     );
 
 %Math::NV::EXPORT_TAGS = (all => [qw(
     nv nv_type mant_dig ld2binary ld_str2binary is_eq
     bin2val Cprintf Csprintf nv_mpfr is_eq_mpfr
     set_C set_mpfr is_inexact
+    MPFR_STRTOFR_BUG LD_SUBNORMAL_BUG
     )]);
 
 if($Math::MPFR::VERSION < 4.07) {
@@ -77,18 +86,6 @@ if($Math::MPFR::VERSION < 4.07) {
                            '106MIN' => $Math::NV::DBL_DENORM_MIN_MIN,
                            '113MIN' => $Math::NV::FLT128_DENORM_MIN_MIN,
                            );
-
-if(Math::MPFR::_ld_subnormal_bug()) {
-  $Math::NV::_ld_subnormal_bug = 1;
-}
-else {
-  $Math::NV::_ld_subnormal_bug = 0;
-}
-
-# With mpfr-3.1.5 and earlier, the ternary value returned
-# by mpfr_strtofr is unreliable - thereby making that function
-# unusable with mpfr_subnormalize.
-$Math::NV::mpfr_strtofr_bug = MPFR_VERSION() <= 196869 ? 1 : 0;
 
 $Math::NV::no_warn = 0; # set to 1 to disable warning about non-string argument
                         # set to 2 to disable output of the 2 non-matching values
@@ -204,7 +201,7 @@ sub is_eq_mpfr {
     $fr = Rmpfr_init2($bits);
     my $inex = Rmpfr_strtofr($fr, $nv, 0, 0);
 
-    unless($Math::NV::mpfr_strtofr_bug) {
+    unless(MPFR_STRTOFR_BUG) {
       $fr = _subnormalize($_[0], $bits);
     }
     else {
@@ -263,7 +260,7 @@ sub nv_mpfr {
 
   if($bits == mant_dig() ) { # 53, 64 or 113 bits
 
-    unless($Math::NV::mpfr_strtofr_bug) {
+    unless(MPFR_STRTOFR_BUG) {
       $val = _subnormalize($_[0], $bits);
     }
     else { # ELSE1
@@ -283,7 +280,7 @@ sub nv_mpfr {
 
   if($bits == 53) {
 
-    unless($Math::NV::mpfr_strtofr_bug) {
+    unless(MPFR_STRTOFR_BUG) {
       $val = _subnormalize($_[0], 53);
     }
     else { # ELSE1
@@ -347,7 +344,7 @@ sub set_mpfr {
   die "In set_mpfr: unrecognized nv precision of $bits bits"
     unless($bits == 53 || $bits == 64 || $bits == 113);
 
-    unless($Math::NV::mpfr_strtofr_bug) {
+    unless(MPFR_STRTOFR_BUG) {
       $val = _subnormalize($_[0], $bits);
     }
     else { # ELSE1
@@ -365,8 +362,7 @@ sub set_mpfr {
 
 sub is_inexact {
 
-  die "is_inexact() requires at least mpfr-3.1.6"
-    if $Math::NV::mpfr_strtofr_bug;
+  die "is_inexact() requires at least mpfr-3.1.6" if MPFR_STRTOFR_BUG;
 
   unless($Math::NV::no_warn & 1) {
     my $itsa = $_[0];
