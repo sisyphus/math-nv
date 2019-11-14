@@ -71,7 +71,7 @@ $exponent = $Config{nvtype} eq 'double' ? '-308' : '-4932';
 # Check also that that the hex dump of $nv
 # matches the hex dump returned by nv_mpfr($str)
 
-unless($Math::NV::_ld_subnormal_bug && $Config{nvtype} eq 'long double') {
+unless(LD_SUBNORMAL_BUG && $Config{nvtype} eq 'long double') {
   for my $count(1 .. 10000, 200000 .. 340000) {
 
     my $str = sprintf "%06d", $count;
@@ -153,7 +153,7 @@ $ok = 1;
 # confident that is_eq_mpfr($str) assigns the
 # same value as nv_mpfr($str)
 
-unless($Math::NV::_ld_subnormal_bug && $Config{nvtype} eq 'long double') {
+unless(LD_SUBNORMAL_BUG && $Config{nvtype} eq 'long double') {
   for my $count(1 .. 10000, 200000 .. 340000) {
 
     my $str = sprintf "%06d", $count;
@@ -363,7 +363,7 @@ elsif(mant_dig() == 64) {
   my $len = scalar(@str1);
   die "size mismatch" if @str1 != @str2;
 
-  if(!$Math::NV::_ld_subnormal_bug) {
+  unless(LD_SUBNORMAL_BUG) {
     for(my $i = 0; $i < $len; $i++) {
       if(set_mpfr($str1[$i]) != set_mpfr($str2[$i])) {
         warn "\nIn set_mpfr(): ", Math::NV::get_relevant_prec(Math::MPFR->new($str1[$i], 2)), ": $str1[$i] != $str2[$i]\n";
@@ -541,7 +541,7 @@ $ok = 1;
 # in _ld_bytes().
 
 if($have_ld_bytes) {
-  if(!$Math::NV::_ld_subnormal_bug) {
+  unless(LD_SUBNORMAL_BUG) {
     for my $count(1 .. 10000, 200000 .. 340000) {
 
       my $str = sprintf "%06d", $count;
@@ -769,7 +769,7 @@ elsif(mant_dig() == 53) {
   my $len = scalar(@str1);
   die "size mismatch" if @str1 != @str2;
 
-  if(!$Math::NV::_ld_subnormal_bug) {
+  unless(LD_SUBNORMAL_BUG) {
     if($have_ld_bytes) {
       for(my $i = 0; $i < $len; $i++) {
         my $x = nv_mpfr($str1[$i], 64);
