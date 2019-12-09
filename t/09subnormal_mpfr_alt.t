@@ -27,6 +27,13 @@ if($have_atonv) {
 }
 else {  warn "\n Math::MPFR::atonv() tests disabled\n"}
 
+my $ld_type;
+
+if   (Math::MPFR::LDBL_MANT_DIG == 53)  {$ld_type = 'double'}
+elsif(Math::MPFR::LDBL_MANT_DIG == 64)  {$ld_type = 'long double'}
+elsif(Math::MPFR::LDBL_MANT_DIG == 106) {$ld_type = 'double-double'}
+elsif(Math::MPFR::LDBL_MANT_DIG == 113) {$ld_type = 'ieee long double'}
+else { die "Unknown long double type" }
 
 my $t = 9;
 
@@ -270,7 +277,7 @@ for my $count(1 .. 10000, 200000 .. 340000) {
   $str .= "e-308";
 
   my $out_a = nv_mpfr($str, 106);
-  my $out_b = join '', Math::MPFR::_dd_bytes($str, 106);
+  my $out_b = Math::MPFR::bytes($str, 'double-double');
 
   my @out1 = @$out_a;
   my @out2 = (substr($out_b, 0, 16), substr($out_b, 16, 16));
@@ -524,7 +531,7 @@ for my $count(1 .. 10000, 200000 .. 340000) {
   $str .= "e-308";
 
   my $out1 = nv_mpfr($str, 53);
-  my $out2 = join '', Math::MPFR::_d_bytes($str, 53);
+  my $out2 = Math::MPFR::bytes($str, 'double');
 
   if($out1 ne $out2) {
     warn "$out1 ne $out2\n";
@@ -563,7 +570,7 @@ if($have_ld_bytes) {
         $out1 = substr($out1, -20, 20);
       }
 
-      my $out2 = join '', Math::MPFR::_ld_bytes($str, Math::MPFR::LDBL_MANT_DIG);
+      my $out2 = Math::MPFR::bytes($str, $ld_type);
 
       if($out1 ne $out2 && $out1 ne ('0000'. $out2) && $out1 ne ('000000000000'. $out2)) {
         warn "\nIn _ld_bytes: $out1 ne $out2 for $str\n";
@@ -606,7 +613,7 @@ if($have_f128_bytes) {
     $str .= "e-4932";
 
     my $out1 = nv_mpfr($str, 113);
-    my $out2 = join '', Math::MPFR::_f128_bytes($str, 113);
+    my $out2 = Math::MPFR::bytes($str, '__float128');
 
     if($out1 ne $out2) {
       warn "$out1 ne $out2\n";
