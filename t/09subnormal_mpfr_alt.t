@@ -28,12 +28,13 @@ if($have_atonv) {
 else {  warn "\n Math::MPFR::atonv() tests disabled\n"}
 
 my $ld_type;
-
-if   (Math::MPFR::LDBL_MANT_DIG == 53)  {$ld_type = 'double'}
+if   (Math::MPFR::LDBL_MANT_DIG == 53)  {$ld_type = 'double'; }
 elsif(Math::MPFR::LDBL_MANT_DIG == 64)  {$ld_type = 'long double'}
-elsif(Math::MPFR::LDBL_MANT_DIG == 106) {$ld_type = 'double-double'}
+elsif(Math::MPFR::LDBL_MANT_DIG == 106) {$ld_type = 'double double'}
 elsif(Math::MPFR::LDBL_MANT_DIG == 113) {$ld_type = 'ieee long double'}
 else { die "Unknown long double type" }
+
+my $ld_bits = Math::MPFR::LDBL_MANT_DIG == 106 ? 2098 : Math::MPFR::LDBL_MANT_DIG;
 
 my $t = 9;
 
@@ -58,14 +59,27 @@ my($have_ld_bytes, $no_ld_bytes) = (0, '');
 # warning on double-double builds, before setting $@ to "2nd arg to
 # Math::MPFR::_ld_bytes must be 64 or 113".
 
-eval{Math::MPFR::_ld_bytes('1e-2', Math::MPFR::LDBL_MANT_DIG)};
+if(Math::NV::OLD_MATH_MPFR) {
+  eval{Math::MPFR::_ld_bytes('1e-2', $ld_bits);};
+}
+else {
+  eval{Math::MPFR::_ld_bytes('1e-2');};
+}
+
 unless($@) {
   $have_ld_bytes = 1;
 }
 else {$no_ld_bytes = $@}
 
 my($have_f128_bytes, $no_f128_bytes) = (0, '');
-eval{Math::MPFR::_f128_bytes('1e-2', 113)};
+
+if(Math::NV::OLD_MATH_MPFR) {
+  eval{Math::MPFR::_f128_bytes('1e-2', 113);};
+}
+else {
+  eval{Math::MPFR::_f128_bytes('1e-2');};
+}
+
 unless($@) {
   $have_f128_bytes = 1;
 }
@@ -277,7 +291,13 @@ for my $count(1 .. 10000, 200000 .. 340000) {
   $str .= "e-308";
 
   my $out_a = nv_mpfr($str, 106);
-  my $out_b = Math::MPFR::bytes($str, 'double-double');
+  my $out_b;
+  if(Math::NV::OLD_MATH_MPFR) {
+    $out_b = Math::MPFR::bytes($str, 'double-double');
+  }
+  else {
+    $out_b = Math::MPFR::bytes($str, 2098);
+  }
 
   my @out1 = @$out_a;
   my @out2 = (substr($out_b, 0, 16), substr($out_b, 16, 16));
@@ -531,7 +551,13 @@ for my $count(1 .. 10000, 200000 .. 340000) {
   $str .= "e-308";
 
   my $out1 = nv_mpfr($str, 53);
-  my $out2 = Math::MPFR::bytes($str, 'double');
+  my $out2;
+  if(Math::NV::OLD_MATH_MPFR) {
+    $out2 = Math::MPFR::bytes($str, 'double');
+  }
+  else {
+    $out2 = Math::MPFR::bytes($str, 53);
+  }
 
   if($out1 ne $out2) {
     warn "$out1 ne $out2\n";
@@ -570,7 +596,14 @@ if($have_ld_bytes) {
         $out1 = substr($out1, -20, 20);
       }
 
-      my $out2 = Math::MPFR::bytes($str, $ld_type);
+
+      my $out2;
+      if(Math::NV::OLD_MATH_MPFR) {
+        $out2 = Math::MPFR::bytes($str, $ld_type);
+      }
+      else {
+        $out2 = Math::MPFR::bytes($str, $ld_bits);
+      }
 
       if($out1 ne $out2 && $out1 ne ('0000'. $out2) && $out1 ne ('000000000000'. $out2)) {
         warn "\nIn _ld_bytes: $out1 ne $out2 for $str\n";
@@ -613,7 +646,13 @@ if($have_f128_bytes) {
     $str .= "e-4932";
 
     my $out1 = nv_mpfr($str, 113);
-    my $out2 = Math::MPFR::bytes($str, '__float128');
+    my $out2;
+    if(Math::NV::OLD_MATH_MPFR) {
+      $out2 = Math::MPFR::bytes($str, '__float128');
+    }
+    else {
+      $out2 = Math::MPFR::bytes($str, 113);
+    }
 
     if($out1 ne $out2) {
       warn "$out1 ne $out2\n";
