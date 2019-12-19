@@ -8,9 +8,13 @@ use 5.010;
 # With mpfr-3.1.5 and earlier, the ternary value returned
 # by mpfr_strtofr is unreliable - thereby making that function
 # unusable with mpfr_subnormalize.
-use constant MPFR_STRTOFR_BUG => MPFR_VERSION() <= 196869 ? 1 : 0;
+use constant MPFR_STRTOFR_BUG => MPFR_VERSION() <= 196869        ? 1 : 0;
 
+# check for presence of mpfr bug in handling of long doubles.
 use constant LD_SUBNORMAL_BUG => Math::MPFR::_ld_subnormal_bug() ? 1 : 0;
+
+# Math::MPFR::bytes semantics changed in Math-MPFR-4.13
+use constant OLD_MATH_MPFR    => $Math::MPFR::VERSION < 4.13     ? 1 : 0;
 
 require Exporter;
 *import = \&Exporter::import;
@@ -256,7 +260,8 @@ sub nv_mpfr {
 
   $bits = defined($_[1]) ? $_[1] : mant_dig();
 
-  return _double_double($_[0]) if $bits == 106; # doubledouble
+  # Accept $bits values of either 2098 or 106 as indicating double-double.
+  return _double_double($_[0]) if $bits == 106 || $bits == 2098;
 
   if($bits == mant_dig() ) { # 53, 64 or 113 bits
 
@@ -297,19 +302,23 @@ sub nv_mpfr {
   }
 
   if($bits == 64) {
-    return Math::MPFR::bytes($_[0], 'long double');
+    if(OLD_MATH_MPFR) { return Math::MPFR::bytes($_[0], 'long double') }
+    return Math::MPFR::bytes($_[0], 64);
   }
 
   if($bits == 113) {
 
     my $t;
     eval{$t = Math::MPFR::_have_IEEE_754_long_double();}; # needs Math-MPFR-3.33, perl-5.22.
-    if(!$@ && $t) {
-      return Math::MPFR::bytes($_[0], 'ieee long double');
+    if(OLD_MATH_MPFR) {
+      if(!$@ && $t) {
+        return Math::MPFR::bytes($_[0], 'long double');
+      }
+      else { # assume __float128 (though that might not be the case)
+          return Math::MPFR::bytes($_[0], '__float128');
+      }
     }
-    else { # assume __float128 (though that might not be the case)
-      return Math::MPFR::bytes($_[0], '__float128');
-    }
+    return Math::MPFR::bytes($_[0], 113);
   }
 
   die "Unrecognized value for bits ($bits)";
