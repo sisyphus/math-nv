@@ -92,13 +92,18 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
    $hex = nv_mpfr($str, [$bits]); # Returns a hex dump of the NV,
                                   # not the actual NV.
 
-    (Again, values will be subnormalized if appropriate.)
+    Again, values will be subnormalized if appropriate.
     If $bits is not specified, it will be set to the value returned by
     mant_dig() - which is the appropriate value for the current perl
     that is being run.
     Valid values for $bits are 53 (double), 64 (80-bit extended
-    precision long double), 106 (double-double) and 113 (128-bit quad
-    long double or __float128). Other values will cause an error.
+    precision long double), 113 (128-bit quad long double or __float128).
+    To signify the double-double type, set $bits to either 106 or 2098.
+    (While the double-double has only 106 mantissa bits, it can
+    encapsulate precisions up to 2098 bits for some values. It makes no
+    difference whether you specify 106 or 2098 - just go with the number
+    you consider to be the more appropriate or easiest to memorise.)
+    Any values other than 53, 64, 106, 113, or 2098 will cause an error.
 
     Uses the mpfr library to assign the value represented by $str as a
     double or long double or double-double or __float128 (as determined
