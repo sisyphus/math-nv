@@ -54,7 +54,7 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
      Returns true if the value perl assigns from the string $str is
      equal to the value mpfr assigns from the same string. If the
      string represents a subnormal value then the mpfr value is
-     subnormalised before comparison is made.
+     subnormalised before the comparison is made.
 
      When is_eq_mpfr() returns false, the 2 differing values are by
      default printed to STDOUT (in hex). To disable this behaviour
@@ -111,10 +111,9 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
     make up that C data type.
 
     For example, nv_mpfr('1e+127', 53) returns 5a4d8ba7f519c84f.
-    This is the same as should be returned by
+    This is the same as will be returned by
     scalar(reverse(unpack("h*", pack("d<", 1e+127))))
-    except that, on my Windows machine, it returns 5a4d8ba7f519c851 .
-    (Yes, perl's assignment of that value is out by 2 ULP's.)
+    if the assignment of 1e+127 to a double has been done correctly.
 
     For the double-double, the returned scalar is a reference to a list
     that contains 2 elements - the hex dump of the most significant
@@ -155,7 +154,7 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
     it can be either 64 (extended precision long double), 113 (quad
     long double) or 106 (IBM double-double).
     For nv_type() of '__float128', mant_dig() will return 113.
-    This module accommodates no other than those 4 values.
+    This function returns no other than one of those 4 values.
     IOW, expect mant_dig() to return the value of the float.h macro
     DBL_MANT_DIG, LDBL_MANT_DIG, or FLT128_MANT_DIG depending upon
     whichever is appropriate for perl's configuration.
@@ -169,25 +168,26 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
     $mantissa is the mantissa (significand).
     $exponent is the exponent.
     $precision is the precision (in bits) of the mantissa - trailing
-    zero bits are not counted.
+    zero bits are not counted. For example:
+
+      @x = ld2binary(2 ** 45);
+      will, upon investigation of the contents of @x, reveal that the
+      mantissa is 0.1, the exponent is 46, and the precision is 1.
 
 
    ($mantissa, $exponent, $precision) = ld_str2binary($str);
 
-    Uses code taken from tests/tset_ld.c in the mpfr library source
-    and returns a base 2 representation of the value of the NV
-    represented by the string $str - irrespective of whether the NV
-    type ($Config{nvtype}) is double, long double or __float128.
-    $mantissa is the mantissa (significand).
-    $exponent is the exponent.
-    $precision is the precision (in bits) of the mantissa - trailing
-    zero bits are not counted.
+    As for ld2binary, except that the argument is a string, not an NV:
+
+      @x = ld_str2binary('35184372088832');
+           produces same result as doing:
+      @x = ld2binary(2 ** 45);
 
    $nv = bin2val($mantissa, $exponent, $precision);
 
     Takes the return values of ld_str2binary() or ld2binary() and
-    returns the original NV. (Probably doesn't work if the original
-    NV is an inf or a nan.)
+    returns the original NV. (Doesn't work if the original NV is an inf
+    or a nan.)
 
    Cprintf($fmt, $nv);
     Uses C's printf() function to format the NV $nv, according to the
@@ -216,7 +216,7 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
 
    This program is free software; you may redistribute it and/or modify
    it under the same terms as Perl itself.
-   Copyright 2013-16, 2018-19 Sisyphus
+   Copyright 2013-16, 2018-20 Sisyphus
 
 
 =head1 AUTHOR
