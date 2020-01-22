@@ -20,7 +20,7 @@ require Exporter;
 *import = \&Exporter::import;
 require DynaLoader;
 
-$Math::NV::VERSION = '2.03';
+$Math::NV::VERSION = '2.04';
 
 DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
 
