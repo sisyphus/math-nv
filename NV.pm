@@ -22,7 +22,7 @@ require DynaLoader;
 
 $Math::NV::VERSION = '2.04';
 
-DynaLoader::bootstrap Math::NV $Math::NV::VERSION;
+Math::NV->DynaLoader::bootstrap($Math::NV::VERSION);
 
 @Math::NV::EXPORT = ();
 @Math::NV::EXPORT_OK = qw(
