@@ -134,7 +134,7 @@ unless(LD_SUBNORMAL_BUG && $Config{nvtype} eq 'long double') {
       }
     }
 
-    my $out1 = scalar(reverse(unpack("h*", pack("F<", $nv))));
+    my $out1 = unpack("H*", pack("F>", $nv));
 
     my $out2;
     my $out = nv_mpfr($str);
@@ -148,7 +148,7 @@ unless(LD_SUBNORMAL_BUG && $Config{nvtype} eq 'long double') {
       warn "For $str:\n $out1 ne $out2\n";
       if($] >= '5.022') {
         warn "The former is: ", sprintf("%a\n", $nv), sprintf("%.16e\n", $nv);
-        warn "The latter is: ", sprintf "%a\n", unpack("F<", pack "h*", scalar reverse $out2);
+        warn "The latter is: ", sprintf "%a\n", unpack("F>", pack "H*", $out2);
       }
       $ok = 0;
      last;
@@ -197,9 +197,9 @@ unless(LD_SUBNORMAL_BUG && $Config{nvtype} eq 'long double') {
       my $ret = nv_mpfr($str);
       my @t = @$ret;
       my $s = $t[0] . $t[1];
-      $out = unpack("F<", pack "h*", scalar reverse $s);
+      $out = unpack("F>", pack "H*", $s);
     }
-    else { $out = unpack("F<", pack "h*", scalar reverse nv_mpfr($str));}
+    else { $out = unpack("F>", pack "H*", nv_mpfr($str));}
 
     if($out == $perl_nv && !is_eq_mpfr($str)) {
       warn "For $str:\nperl and nv_mpfr() agree, but is_eq_mpfr($str) returns false\n";
@@ -264,7 +264,7 @@ for my $count(1 .. 10000, 150000 .. 222507) {
     last;
   }
 
-  my $lsd = unpack("d<", pack "h*", scalar reverse $out[1]);
+  my $lsd = unpack("d>", pack "H*", $out[1]);
 
   unless($lsd == 0) {
     warn "\n$str: lsd ($out[1]) is not 0\n";
