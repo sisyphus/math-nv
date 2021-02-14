@@ -161,9 +161,9 @@ sub is_eq {
     if(mant_dig() == 64) {
       # pack/unpack like to deliver irrelevant (ie ignored) leading bytes
       # if NV is 80-bit long double
-      my $first = scalar(reverse(unpack("h*", pack("F<", $nv))));
+      my $first = unpack("H*", pack("F>", $nv));
       $first = substr($first, length($first) - 20, 20);
-      my $second = scalar(reverse(unpack("h*", pack("F<", $check))));
+      my $second = unpack("H*", pack("F>", $check));
       $second = substr($second, length($second) - 20, 20);
       warn "\nIn is_eq:\nperl: $first vs C: $second\n";
       if($] > 5.02) {
@@ -172,8 +172,8 @@ sub is_eq {
     }
     else {
       warn "\nIn is_eq:\nperl: ",
-        scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs C: ",
-        scalar(reverse(unpack("h*", pack("F<", $check)))), "\n";
+        unpack("H*", pack("F>", $nv)), " vs C: ",
+        unpack("H*", pack("F>", $check)), "\n";
       if($] > 5.02) {
         warn "perl: ", sprintf("%a", $nv), " vs mpfr: ", sprintf("%a", $check), "\n";
       }
@@ -225,9 +225,9 @@ sub is_eq_mpfr {
     if($bits == 64) {
       # pack/unpack like to deliver irrelevant (ie ignored) leading bytes
       # if NV is 80-bit long double
-      my $first = scalar(reverse(unpack("h*", pack("F<", $nv))));
+      my $first = unpack("H*", pack("F>", $nv));
       $first = substr($first, length($first) - 20, 20);
-      my $second = scalar(reverse(unpack("h*", pack("F<", Rmpfr_get_NV($fr, 0)))));
+      my $second = unpack("H*", pack("F>", Rmpfr_get_NV($fr, 0)));
       $second = substr($second, length($second) - 20, 20);
       warn "\nIn is_eq_mpfr: $_[0]\nperl: $first vs mpfr: $second\n";
       if($] > 5.02) {
@@ -236,8 +236,8 @@ sub is_eq_mpfr {
     }
     else {
       warn "\nIn is_eq_mpfr: $_[0]\nperl: ",
-        scalar(reverse(unpack("h*", pack("F<", $nv)))), " vs mpfr: ",
-        scalar(reverse(unpack("h*", pack("F<", Rmpfr_get_NV($fr, 0))))), "\n";
+        unpack("H*", pack("F>", $nv)), " vs mpfr: ",
+        unpack("H*", pack("F>", Rmpfr_get_NV($fr, 0))), "\n";
       if($] > 5.02) {
         warn "perl: ", sprintf("%a", $nv), " vs mpfr: ", sprintf("%a", Rmpfr_get_NV($fr, 0)), "\n";
       }
@@ -278,7 +278,7 @@ sub nv_mpfr {
     } # ELSE1
 
     my $nv = Rmpfr_get_NV($val, 0);
-    my $ret = scalar(reverse(unpack("h*", pack("F<", $nv))));
+    my $ret = unpack("H*", pack("F>", $nv));
 
     return $ret;
   }
@@ -298,7 +298,7 @@ sub nv_mpfr {
     } # ELSE1
 
     my $nv = Rmpfr_get_d($val, 0);
-    return scalar(reverse(unpack("h*", pack("d<", $nv))));
+    return unpack("H*", pack("d>", $nv));
   }
 
   if($bits == 64) {
@@ -406,8 +406,8 @@ sub _double_double {
   my $val = Rmpfr_init2(2098);
   Rmpfr_set_str($val, shift, 0, 0);
   my @val = _dd_obj($val);
-  return [scalar(reverse(unpack("h*", pack("d<", $val[0])))),
-          scalar(reverse(unpack("h*", pack("d<", $val[1]))))];
+  return [unpack("H*", pack("d>", $val[0])),
+          unpack("H*", pack("d>", $val[1]))];
 }
 
 sub _dd_obj {
