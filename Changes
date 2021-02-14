@@ -1,5 +1,6 @@
 Revision history for Perl module Math::NV
  2.04
+    - Remove all occurrences of "scalar reverse" from NV.pm and NV.pod
 
  2.03
     - "use constant" to replace $Math::NV::mpfr_strtofr_bug with MPFR_STRTOFR_BUG
