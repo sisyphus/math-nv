@@ -103,6 +103,11 @@ my %_itsa = (
   2 => 'IV',
   3 => 'NV',
   4 => 'string',
+  5 => 'Math::MPFR object',
+  6 => 'Math::GMPf object',
+  7 => 'Math::GMPq object',
+  8 => 'Math::GMPz object',
+  9 => 'Math::GMP object',
   0 => 'unknown',
 );
 
@@ -150,7 +155,7 @@ sub bin2val {
 sub is_eq {
   unless($Math::NV::no_warn & 1) {
     my $itsa = $_[0];
-    $itsa = _itsa($itsa); # make sure that $_[0] has POK flag set && all numeric flags unset
+    $itsa = Math::MPFR::_itsa($itsa); # make sure that $_[0] has POK flag set && IOK flag unset
     warn "Argument given to is_eq() is $_itsa{$itsa}, not a string - probably not what you want"
     if $itsa != 4;
   }
@@ -186,7 +191,7 @@ sub is_eq_mpfr {
 
   unless($Math::NV::no_warn & 1) {
     my $itsa = $_[0];
-    $itsa = _itsa($itsa); # make sure that $_[0] has POK flag set && all numeric flags unset
+    $itsa = Math::MPFR::_itsa($itsa); # make sure that $_[0] has POK flag set && IOK flag unset
     warn "Argument given to is_eq() is $_itsa{$itsa}, not a string - probably not what you want"
     if $itsa != 4;
   }
@@ -251,9 +256,13 @@ sub nv_mpfr {
 
   unless($Math::NV::no_warn & 1) {
     my $itsa = $_[0];
-    $itsa = _itsa($itsa);  # make sure that $_[0] has POK flag set && all numeric flags unset
-    warn "Argument given to is_eq() is $_itsa{$itsa}, not a string - probably not what you want"
-    if $itsa != 4;
+    $itsa = Math::MPFR::_itsa($itsa);
+
+    # $itsa == 4 implies that $val's POK flag is set && IOK flag is unset.
+    # $itsa == 5 implies that $val is a Math::MPFR::object.
+    warn "Argument given to nv_mpfr is $_itsa{$itsa}, neither a string nor a Math::MPFR object",
+    " and probably not what you want"
+    if ($itsa != 4 && $itsa != 5);
   }
 
   my($val, $bits);
@@ -328,7 +337,7 @@ sub set_mpfr {
 
   unless($Math::NV::no_warn & 1) {
     my $itsa = $_[0];
-    $itsa = _itsa($itsa);  # make sure that $_[0] has POK flag set && all numeric flags unset
+    $itsa = Math::MPFR::_itsa($itsa);  # make sure that $_[0] has POK flag set && all numeric flags unset
     warn "Argument given to is_eq() is $_itsa{$itsa}, not a string - probably not what you want"
     if $itsa != 4;
   }
@@ -372,7 +381,7 @@ sub is_inexact {
 
   unless($Math::NV::no_warn & 1) {
     my $itsa = $_[0];
-    $itsa = _itsa($itsa);  # make sure that $_[0] has POK flag set && all numeric flags unset
+    $itsa = Math::MPFR::_itsa($itsa);  # make sure that $_[0] has POK flag set && all numeric flags unset
     warn "Argument given to is_inexact() is $_itsa{$itsa}, not a string - possibly not what you want"
     if $itsa != 4;
   }
@@ -394,7 +403,7 @@ sub is_inexact {
 sub set_C {
   unless($Math::NV::no_warn & 1) {
     my $itsa = $_[0];
-    $itsa = _itsa($itsa);  # make sure that $_[0] has POK flag set && all numeric flags unset
+    $itsa = Math::MPFR::_itsa($itsa);  # make sure that $_[0] has POK flag set && all numeric flags unset
     warn "Argument given to is_eq() is $_itsa{$itsa}, not a string - probably not what you want"
     if $itsa != 4;
   }
