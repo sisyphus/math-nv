@@ -18,6 +18,13 @@ use warnings;
 use Math::NV qw(:all);
 use Config;
 
+# We need to skip tests 3 and 4 if we're running a
+# 32-bit windows perl that is pre-5.20.0 - because
+# of bugginess of pack/unpack.
+
+my $skip = 0;
+$skip = 1 if( $] < 5.02 && $Config{archname} =~ /^MSWin32\-x86/ );
+
 my ($have_atonv);
 
 $have_atonv = Math::MPFR::MPFR_VERSION() <= 196869 ? 0 : 1;
@@ -236,87 +243,101 @@ $ok = 1;
 ########### Test 2 ends
 ########### Test 3 starts
 
-# Check that nv_mpfr($str) calculates exactly
-# the same value for double and double-double
-# whenever $str represents a subnormal double
-# value. If $Config{nvtype} is 'double', then
-# nv_mpfr($str, 53) uses only the Math::NV
-# code for the calculation.
-# Otherwise Math::MPFR::_d_bytes() is called
-# upon.
-
-for my $count(1 .. 10000, 150000 .. 222507) {
-
-  my $exp =  308 + int(rand(16));
-
-  my $str = sprintf "%06d", $count;
-  substr($str, 1, 0, '.');
-  $str .= "e-$exp";
-
-  my $out1 = nv_mpfr($str, 53);
-  my $out2 = nv_mpfr($str, 106);
-
-  my @out = @$out2;
-
-  if($out1 ne $out[0]) {
-    warn "$out1 ne $out[0]\n";
-    $ok = 0;
-    last;
-  }
-
-  my $lsd = unpack("d>", pack "H*", $out[1]);
-
-  unless($lsd == 0) {
-    warn "\n$str: lsd ($out[1]) is not 0\n";
-    $ok = 0;
-    last;
-  }
+if($skip) {  # buggy pack/unpack
+  warn "\n Skipping test 3 - perl's pack/unpack is unreliable\n";
+  print "ok 3\n";
 }
+else {
 
-if($ok) {print "ok 3\n"}
-else {print "not ok 3\n"}
+  # Check that nv_mpfr($str) calculates exactly
+  # the same value for double and double-double
+  # whenever $str represents a subnormal double
+  # value. If $Config{nvtype} is 'double', then
+  # nv_mpfr($str, 53) uses only the Math::NV
+  # code for the calculation.
+  # Otherwise Math::MPFR::_d_bytes() is called
+  # upon.
+
+  for my $count(1 .. 10000, 150000 .. 222507) {
+
+    my $exp =  308 + int(rand(16));
+
+    my $str = sprintf "%06d", $count;
+    substr($str, 1, 0, '.');
+    $str .= "e-$exp";
+
+    my $out1 = nv_mpfr($str, 53);
+    my $out2 = nv_mpfr($str, 106);
+
+    my @out = @$out2;
+
+    if($out1 ne $out[0]) {
+      warn "$out1 ne $out[0]\n";
+      $ok = 0;
+      last;
+    }
+
+    my $lsd = unpack("d>", pack "H*", $out[1]);
+
+    unless($lsd == 0) {
+      warn "\n$str: lsd ($out[1]) is not 0\n";
+      $ok = 0;
+      last;
+    }
+  }
+
+  if($ok) {print "ok 3\n"}
+  else {print "not ok 3\n"}
+}
 
 $ok = 1;
 
 ########### Test 3 ends
 ########### Test 4 starts
 
-# Checks Math::MPFR::_dd_bytes($str, 106)
-# against nv_mpfr($str, 106)
-
-for my $count(1 .. 10000, 200000 .. 340000) {
-
-  my $str = sprintf "%06d", $count;
-  substr($str, 1, 0, '.');
-  $str .= "e-308";
-
-  my $out_a = nv_mpfr($str, 106);
-  my $out_b;
-  if(Math::NV::OLD_MATH_MPFR) {
-    $out_b = Math::MPFR::bytes($str, 'double-double');
-  }
-  else {
-    $out_b = Math::MPFR::bytes($str, 2098);
-  }
-
-  my @out1 = @$out_a;
-  my @out2 = (substr($out_b, 0, 16), substr($out_b, 16, 16));
-
-  if($out1[0] ne $out2[0]) {
-    warn "msd: $out1[0] ne $out2[0]\n";
-    $ok = 0;
-    last;
-  }
-
-  if($out1[1] ne $out2[1]) {
-    warn "lsd: $out1[1] ne $out2[1]\n";
-    $ok = 0;
-    last;
-  }
+if($skip) {  # buggy pack/unpack
+  warn "\n Skipping test 4 - perl's pack/unpack is unreliable\n";
+  print "ok 4\n";
 }
+else {
 
-if($ok) {print "ok 4\n"}
-else {print "not ok 4\n"}
+  # Checks Math::MPFR::_dd_bytes($str, 106)
+  # against nv_mpfr($str, 106)
+
+  for my $count(1 .. 10000, 200000 .. 340000) {
+
+    my $str = sprintf "%06d", $count;
+    substr($str, 1, 0, '.');
+    $str .= "e-308";
+
+    my $out_a = nv_mpfr($str, 106);
+    my $out_b;
+    if(Math::NV::OLD_MATH_MPFR) {
+      $out_b = Math::MPFR::bytes($str, 'double-double');
+    }
+    else {
+      $out_b = Math::MPFR::bytes($str, 2098);
+    }
+
+    my @out1 = @$out_a;
+    my @out2 = (substr($out_b, 0, 16), substr($out_b, 16, 16));
+
+    if($out1[0] ne $out2[0]) {
+      warn "msd: $out1[0] ne $out2[0]\n";
+      $ok = 0;
+      last;
+    }
+
+    if($out1[1] ne $out2[1]) {
+      warn "lsd: $out1[1] ne $out2[1]\n";
+      $ok = 0;
+      last;
+    }
+  }
+
+  if($ok) {print "ok 4\n"}
+  else {print "not ok 4\n"}
+}
 
 $ok = 1;
 
