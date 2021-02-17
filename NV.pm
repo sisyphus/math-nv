@@ -8,13 +8,23 @@ use 5.010;
 # With mpfr-3.1.5 and earlier, the ternary value returned
 # by mpfr_strtofr is unreliable - thereby making that function
 # unusable with mpfr_subnormalize.
-use constant MPFR_STRTOFR_BUG => MPFR_VERSION() <= 196869        ? 1 : 0;
+use constant MPFR_STRTOFR_BUG => MPFR_VERSION() <= 196869             ? 1 : 0;
 
 # check for presence of mpfr bug in handling of long doubles.
-use constant LD_SUBNORMAL_BUG => Math::MPFR::_ld_subnormal_bug() ? 1 : 0;
+use constant LD_SUBNORMAL_BUG => Math::MPFR::_ld_subnormal_bug()      ? 1 : 0;
 
 # Math::MPFR::bytes semantics changed in Math-MPFR-4.13
-use constant OLD_MATH_MPFR    => $Math::MPFR::VERSION < 4.13     ? 1 : 0;
+use constant OLD_MATH_MPFR    => $Math::MPFR::VERSION < 4.13          ? 1 : 0;
+
+# Check for unpack/pack bug in older Win32 perls. With these perls
+#  this is reliable:
+#    scalar reverse unpack "h*", pack "d<", $nv;
+#  but these (which should be equivalent to the above), are not:
+#    unpack "H*", pack "d>", $nv;
+#    unpack "H*", pack "F>", $nv;
+
+use constant PACK_BUG => $Config::Config{archname} =~ /MSWin32\-x86/
+                         && $] < 5.02                                 ? 1 : 0;
 
 require Exporter;
 *import = \&Exporter::import;
@@ -240,11 +250,20 @@ sub is_eq_mpfr {
       }
     }
     else {
-      warn "\nIn is_eq_mpfr: $_[0]\nperl: ",
-        unpack("H*", pack("F>", $nv)), " vs mpfr: ",
-        unpack("H*", pack("F>", Rmpfr_get_NV($fr, 0))), "\n";
-      if($] > 5.02) {
-        warn "perl: ", sprintf("%a", $nv), " vs mpfr: ", sprintf("%a", Rmpfr_get_NV($fr, 0)), "\n";
+
+
+      if(PACK_BUG) {
+        warn "\nIn is_eq_mpfr: $_[0]\nperl: ",
+          scalar(reverse(unpack("h*", pack("d<", $nv)))), " vs mpfr: ",
+          scalar(reverse(unpack("h*", pack("d<", Rmpfr_get_NV($fr, 0))))), "\n";
+      }
+      else {
+        warn "\nIn is_eq_mpfr: $_[0]\nperl: ",
+          unpack("H*", pack("F>", $nv)), " vs mpfr: ",
+          unpack("H*", pack("F>", Rmpfr_get_NV($fr, 0))), "\n";
+        if($] > 5.02) {
+          warn "perl: ", sprintf("%a", $nv), " vs mpfr: ", sprintf("%a", Rmpfr_get_NV($fr, 0)), "\n";
+        }
       }
     }
   }
@@ -287,9 +306,13 @@ sub nv_mpfr {
     } # ELSE1
 
     my $nv = Rmpfr_get_NV($val, 0);
-    my $ret = unpack("H*", pack("F>", $nv));
 
-    return $ret;
+    if(PACK_BUG) {     # nvtype is inevitably 'double'
+      return scalar reverse unpack("h*", pack("d<", $nv));
+    }
+    else {
+      return unpack("H*", pack("F>", $nv));
+    }
   }
 
   if($bits == 53) {
@@ -307,7 +330,12 @@ sub nv_mpfr {
     } # ELSE1
 
     my $nv = Rmpfr_get_d($val, 0);
-    return unpack("H*", pack("d>", $nv));
+    if(PACK_BUG) {
+      return scalar reverse unpack("h*", pack("d<", $nv));
+    }
+    else {
+      return unpack("H*", pack("d>", $nv));
+    }
   }
 
   if($bits == 64) {
