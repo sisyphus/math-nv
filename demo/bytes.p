@@ -1,6 +1,6 @@
-# Show the byte-structure of the NV 1e+127, for
-# various Nv types, in both big-endian and
-# little-endian order.
+# Show the byte-structure of the NVs 1e+127 and
+# sqrt(2) for various Nv types, in both big-endian
+# and little-endian order.
 
 use strict;
 use warnings;
