@@ -112,7 +112,7 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
 
     For example, nv_mpfr('1e+127', 53) returns 5a4d8ba7f519c84f.
     This is the same as will be returned by
-    unpack("H*", pack("d>", 1e+127))))
+    unpack("H*", pack("d>", 1e+127))
     if the assignment of 1e+127 to a double has been done correctly.
 
     For the double-double, the returned scalar is a reference to a list
