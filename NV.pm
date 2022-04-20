@@ -39,6 +39,7 @@ Math::NV->DynaLoader::bootstrap($Math::NV::VERSION);
     nv nv_type mant_dig ld2binary ld_str2binary is_eq
     bin2val Cprintf Csprintf nv_mpfr is_eq_mpfr
     set_C set_mpfr is_inexact
+    cmp_2
     MPFR_STRTOFR_BUG LD_SUBNORMAL_BUG
     );
 
@@ -46,6 +47,7 @@ Math::NV->DynaLoader::bootstrap($Math::NV::VERSION);
     nv nv_type mant_dig ld2binary ld_str2binary is_eq
     bin2val Cprintf Csprintf nv_mpfr is_eq_mpfr
     set_C set_mpfr is_inexact
+    cmp_2
     MPFR_STRTOFR_BUG LD_SUBNORMAL_BUG
     )]);
 
@@ -468,7 +470,7 @@ sub get_subnormal {
     return $Math::NV::DENORM_MIN{'0'} * $signbit;
   }
 
-  # If prec == 0, then the value is less than the
+  # If $prec == 0, then the value is less than the
   # minimum subnormal number.
   if($prec == 0) {
     return $Math::NV::DENORM_MIN{$bits} * $signbit if abs($_[0]) > $Math::NV::DENORM_MIN{"${bits}MIN"};
@@ -536,6 +538,50 @@ sub _subnormalize {
 # Rmpfr_set_default_prec($original_prec);
 
   return $val;
+}
+
+sub cmp_2 {
+  my($s1, $s2) = (shift, shift);
+  my($prec1, $prec2);
+
+  if($s1 =~ /^(\-|\+)?0b/i) {
+    $prec1 = length($s1);
+  }
+  elsif($s1 =~ /^(\-|\+)?0x/i) {
+    $prec1 = length($s1) * 4;
+  }
+  elsif($s1 =~ /^(\-|\+)?inf|^(\-|\+)?nan/i) {
+    $prec1 = 2;
+  }
+  else {
+    die "Invalid 1st arg to cmp_2";
+  }
+
+  if($s2 =~ /^(\-|\+)?0b/i) {
+    $prec2 = length($s2);
+  }
+  elsif($s2 =~ /^(\-|\+)?0x/i) {
+    $prec2 = length($s2) * 4;
+  }
+  elsif($s2 =~ /^(\-|\+)?inf|^(\-|\+)?nan/i) {
+    $prec2 = 2;
+  }
+  else {
+    die "Invalid 2nd arg to cmp_2";
+  }
+
+  my $f1 = Math::MPFR::Rmpfr_init2($prec1);
+  my $f2 = Math::MPFR::Rmpfr_init2($prec2);
+
+  my $inex = Math::MPFR::Rmpfr_strtofr($f1, $s1, 0, 0);
+  die "Inexact assignment of first arg in cmp_2 function"
+    if $inex;
+
+  $inex = Math::MPFR::Rmpfr_strtofr($f2, $s2, 0, 0);
+  die "Inexact assignment of second arg in cmp_2 function"
+    if $inex;
+
+  return $f1 <=> $f2;
 }
 
 1;
