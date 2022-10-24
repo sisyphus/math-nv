@@ -1,5 +1,7 @@
 Revision history for Perl module Math::NV
 
+ 2.05
+
  2.04
     - Add cmp_2 (new function).
     - Remove all occurrences of "scalar reverse" from NV.pm, NV.pod,
