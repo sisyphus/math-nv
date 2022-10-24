@@ -34,6 +34,14 @@ jobs:
       run: |
         perl -v
 
+    - name: Install External dependencies
+      if:  ${{ matrix.runner == 'ubuntu-latest' }}
+      run: |
+        sudo apt-get update
+        # needed by Math::MPFR
+        sudo apt-get install -y libgmp-dev libmpfr-dev
+
+
     - name: Install Modules
       run: |
         cpanm -v
