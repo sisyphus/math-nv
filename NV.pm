@@ -34,8 +34,7 @@ $Math::NV::VERSION = '2.05';
 
 Math::NV->DynaLoader::bootstrap($Math::NV::VERSION);
 
-@Math::NV::EXPORT = ();
-@Math::NV::EXPORT_OK = qw(
+my @tagged = qw(
     nv nv_type mant_dig ld2binary ld_str2binary is_eq
     bin2val Cprintf Csprintf nv_mpfr is_eq_mpfr
     set_C set_mpfr is_inexact
@@ -43,13 +42,10 @@ Math::NV->DynaLoader::bootstrap($Math::NV::VERSION);
     MPFR_STRTOFR_BUG LD_SUBNORMAL_BUG
     );
 
-%Math::NV::EXPORT_TAGS = (all => [qw(
-    nv nv_type mant_dig ld2binary ld_str2binary is_eq
-    bin2val Cprintf Csprintf nv_mpfr is_eq_mpfr
-    set_C set_mpfr is_inexact
-    cmp_2
-    MPFR_STRTOFR_BUG LD_SUBNORMAL_BUG
-    )]);
+@Math::NV::EXPORT = ();
+@Math::NV::EXPORT_OK = @tagged;
+
+%Math::NV::EXPORT_TAGS = (all => \@tagged);
 
 if($Math::MPFR::VERSION < 4.07) {
    die " Math-MPFR version needs to be 4.07 or later\n This is only Math-MPFR-$Math::MPFR::VERSION\n";
