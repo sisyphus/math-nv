@@ -39,6 +39,7 @@ my @tagged = qw(
     bin2val Cprintf Csprintf nv_mpfr is_eq_mpfr
     set_C set_mpfr is_inexact
     cmp_2
+    rehex_ld80
     MPFR_STRTOFR_BUG LD_SUBNORMAL_BUG
     );
 
@@ -53,8 +54,13 @@ if($Math::MPFR::VERSION < 4.07) {
 
 ## max NV finite values ##
 # double    : 1.7976931348623157e+308
+# 0.11111111111111111111111111111111111111111111111111111E1024
+
 #long double: 1.18973149535723176502e4932
+# 0.1111111111111111111111111111111111111111111111111111111111111111E16384
+
 # __float128: 1.18973149535723176508575932662800702e4932
+# 0.11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111E16384
 
 ## normal min values ##
 # double     : (2 ** - 1022) : 0.1E-1021  : 2.2250738585072014e-308
@@ -578,6 +584,39 @@ sub cmp_2 {
     if $inex;
 
   return $f1 <=> $f2;
+}
+
+sub rehex_ld80 {
+  my ($v, $fmt) = (shift, shift);
+  die "rehex_ld80() requires that perl's NV is the 80-bit extended precision long double"
+    unless mant_dig() == 64;
+
+  die "Second argument given to rehex_ld80 must be either '%a' or '%A'"
+    unless ($fmt eq '%a' || $fmt eq '%A');
+
+  if(Math::MPFR::_itsa($v) == 5) {  # $v is a Math::MPFR object.
+    die "Math::MPFR object passed to rehex_ld80 must have precision of 64 bits"
+      unless Rmpfr_get_prec($v) == 64;
+
+    # Return requested formatting of the value
+    # held by $v, as performed by perl.
+
+    return sprintf $fmt, Rmpfr_get_ld($v, MPFR_RNDN);
+  }
+  else { # $v is not a Math::MPFR object
+
+    # Return requested formatting  of the value
+    # held by $v, as performed by the mpfr library.
+
+    my $s = sprintf $fmt, $v;
+    my $buff = ' ' x 32;
+
+    $fmt =~ s/%/%R/;
+    my $f = Rmpfr_init2(64);
+    Rmpfr_set_ld($f, $v, MPFR_RNDN);
+    Rmpfr_sprintf($buff, $fmt, $f, 32);
+    return $buff;
+  }
 }
 
 1;
