@@ -4,6 +4,7 @@ Revision history for Perl module Math::NV
     - Add hex_alt function. (Enables one to view both perl's "%a"(or "%A")
       formatting of NVs, and the mpfr library's "%a"(or"%A") formatting of
       the same value.)
+    - Replace deprecated "GIMME == G_ARRAY" with "GIMME_V == G_LIST" in NV.xs.
 
  2.04
     - Add cmp_2 (new function).
