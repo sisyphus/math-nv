@@ -218,18 +218,16 @@ Math::NV - compare the NV values that perl assigns with C and MPFR
     even if  either/both of those precisions exceed the precision of
     perl's floating point type (NV).
 
-   $string = rehex_ld80($val, $fmt); # Only for perl's whose NV is the
-                                     # 64-bit precision long double
-    $val must be either a 64-bit precision Math::MPFR object or a perl
+   $string = hex_alt($val, $fmt);
+    $val must be either a mant_dig() precision Math::MPFR object or a perl
     scalar (which will be treated in NV context).
     $fmt must be either '%a' (for lower case hex formatting) or '%A'
     (for upper case hex formatting).
     If $val is a Math::MPFR object, then the hex string returned is
     as formatted by perl.
-    If $val is a numeric scalar, then  the hex string returned is as
-    formatted by the mpfr library.
-    The formats provided by perl and mpfr (which are sometimes
-    identical but often different) should always be equivalent.
+    Else the hex string returned is as formatted by the mpfr library.
+    The formats provided by perl and mpfr (which are sometimes quite
+    different) should always represent equivalent values.
 
 
 =head1 PACKAGE VARIABLES
