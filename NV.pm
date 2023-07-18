@@ -39,7 +39,7 @@ my @tagged = qw(
     bin2val Cprintf Csprintf nv_mpfr is_eq_mpfr
     set_C set_mpfr is_inexact
     cmp_2
-    rehex_ld80
+    hex_alt
     MPFR_STRTOFR_BUG LD_SUBNORMAL_BUG
     );
 
@@ -586,35 +586,35 @@ sub cmp_2 {
   return $f1 <=> $f2;
 }
 
-sub rehex_ld80 {
+sub hex_alt {
   my ($v, $fmt) = (shift, shift);
-  die "rehex_ld80() requires that perl's NV is the 80-bit extended precision long double"
-    unless mant_dig() == 64;
+  my $nv_prec = mant_dig();
 
-  die "Second argument given to rehex_ld80 must be either '%a' or '%A'"
+  die "Second argument given to hex_alt must be either '%a' or '%A'"
     unless ($fmt eq '%a' || $fmt eq '%A');
 
   if(Math::MPFR::_itsa($v) == 5) {  # $v is a Math::MPFR object.
-    die "Math::MPFR object passed to rehex_ld80 must have precision of 64 bits"
-      unless Rmpfr_get_prec($v) == 64;
+    die "Math::MPFR object passed to hex_alt must have precision of $nv_prec bits"
+      unless Rmpfr_get_prec($v) == $nv_prec;
 
     # Return requested formatting of the value
     # held by $v, as performed by perl.
 
-    return sprintf $fmt, Rmpfr_get_ld($v, MPFR_RNDN);
+    return sprintf $fmt, Rmpfr_get_NV($v, MPFR_RNDN);
   }
   else { # $v is not a Math::MPFR object
 
-    # Return requested formatting  of the value
-    # held by $v, as performed by the mpfr library.
+    # Evaluate $v as an NV, and return the requested formatting
+    # of that value, as performed by the mpfr library.
 
     my $s = sprintf $fmt, $v;
-    my $buff = ' ' x 32;
+    my $buff_size = int($nv_prec / 2);
+    my $buff = ' ' x $buff_size;
 
     $fmt =~ s/%/%R/;
-    my $f = Rmpfr_init2(64);
-    Rmpfr_set_ld($f, $v, MPFR_RNDN);
-    Rmpfr_sprintf($buff, $fmt, $f, 32);
+    my $f = Rmpfr_init2($nv_prec);
+    Rmpfr_set_NV($f, $v, MPFR_RNDN);
+    Rmpfr_sprintf($buff, $fmt, $f, $buff_size);
     return $buff;
   }
 }
