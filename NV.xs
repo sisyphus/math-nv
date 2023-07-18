@@ -60,7 +60,7 @@ void nv(pTHX_ SV * str) {
    }
 
    ST(0) = sv_2mortal(newSVnv(num));
-   if(GIMME == G_ARRAY) {
+   if(GIMME_V == G_LIST) {
      EXTEND(SP, 1);
      if(unparsed)
        ST(1) = sv_2mortal(newSViv(strlen(unparsed)));
