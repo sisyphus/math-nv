@@ -44,6 +44,7 @@ SV * _itsa(pTHX_ SV * a) {
 void nv(pTHX_ SV * str) {
    dXSARGS;
    char * unparsed;
+   PERL_UNUSED_VAR(items);
 #ifdef NV_IS_FLOAT128
    float128 num = strtoflt128(SvPV_nolen(str), &unparsed);
 #endif
@@ -113,6 +114,7 @@ void _ld2binary (pTHX_ SV * ld) {
   int exp = 1;
   unsigned long int prec = 0;
   int returns = 0;
+  PERL_UNUSED_VAR(items);
 
   sp = mark;
 
@@ -193,6 +195,7 @@ void _ld_str2binary (pTHX_ char * ld) {
   int exp = 1;
   unsigned long int prec = 0;
   int returns = 0;
+  PERL_UNUSED_VAR(items);
 
 #ifdef NV_IS_FLOAT128
   d = strtoflt128(ld, NULL);
@@ -329,6 +332,7 @@ void Cprintf(pTHX_ char * fmt, SV * nv) {
 void Csprintf(pTHX_ char * fmt, SV * nv, int size) {
    dXSARGS;
    char * out;
+   PERL_UNUSED_VAR(items);
 
    Newx(out, size, char);
    if(out == NULL) croak("Failed to allocate memory in Csprintf function");

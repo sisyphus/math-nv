@@ -5,6 +5,7 @@ Revision history for Perl module Math::NV
       formatting of NVs, and the mpfr library's "%a"(or"%A") formatting of
       the same value.)
     - Replace deprecated "GIMME == G_ARRAY" with "GIMME_V == G_LIST" in NV.xs.
+    - Silence pointless warnings.
 
  2.04
     - Add cmp_2 (new function).
